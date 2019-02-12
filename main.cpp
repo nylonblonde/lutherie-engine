@@ -1,5 +1,7 @@
 #include "ECS.hpp"
 
+using namespace ECS;
+
 struct MyComponent : Component {
     int Value;
 };
@@ -13,7 +15,7 @@ public:
     }
     
     virtual void OnUpdate(){
-        std::cout << group.size() << std::endl;
+//        std::cout << group.size() << std::endl;
     }
     
 };
@@ -24,9 +26,9 @@ int main(){
     Entity entity = world->createEntity();
     world->setComponent(entity, new MyComponent());
     
-    while(true){
-        World::updateActive(World::allWorlds);
-    }
+//    while(true){
+//        World::updateActive(World::allWorlds);
+//    }
     
     return 0;
 }

@@ -1,5 +1,1 @@
-#ignore XCode project
-lutherie/
-
-#ignore builds
-*.out
+.DS_Store

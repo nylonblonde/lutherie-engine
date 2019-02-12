@@ -1,6 +1,8 @@
 #include "ECS.hpp"
 #include <iostream>
 
+using namespace ECS;
+
 System::System(World& w) : world(w) {}
 
 void System::notifyComponentChange() {
