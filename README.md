@@ -83,4 +83,4 @@ public:
 }
 ```
 
-And finally, to run an update tick, you just need to call the static `World::updateActive(World::allWorlds)`. Notice that this takes a list of worlds as a parameter, so it can be executes on all current worlds or even just a user-defined selection of them.
+And finally, to run an update tick, you just need to call the static `World::updateActive(World::allWorlds)`. Notice that this takes a list of worlds as a parameter, so it can be executed on all current worlds or even just a user-defined selection of them.
