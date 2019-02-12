@@ -24,7 +24,7 @@ public:
     }
     
     virtual void OnUpdate(){
-        //Update loop game object would go here
+        //Update loop game logic would go here
     }
 }
 
