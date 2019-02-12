@@ -38,7 +38,7 @@ World::createWorld<MySystem>();
 
 On cleanup, the public method `destroyWorld()` should be called on all created worlds, as registered `System`s and attached `Component`s are stored in dynamic memory and will be deleted by this function.
 
-##Attaching Components to Entities
+## Attaching Components to Entities
 
 `Component`s require an `Entity` to be "attached" to. Entities are essentially just a glorified index that Components are organized by. Entities should be created by `World`'s public `createEntity()` method. This is so indexing can be handled properly.
 
