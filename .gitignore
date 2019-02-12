@@ -1,0 +1,5 @@
+#ignore XCode project
+lutherie/
+
+#ignore builds
+*.out
