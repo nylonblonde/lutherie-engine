@@ -5,7 +5,7 @@ System::System(World& w) : world(w) {}
 
 void System::notifyComponentChange() {
     for(auto view : views){
-        view->updateComponents();
+        dynamic_cast<decltype(view)>(view)->updateComponents();
     }
 }
 

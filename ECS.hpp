@@ -154,14 +154,7 @@ protected:
     //ComponentGroup will be notified when there is a change
     void notifyComponentChange();
     
-    //we need a base group so that we can store pointers to component groups because of the variadic types
-    struct BaseGroup {
-    public:
-        virtual void updateComponents() {}
-    };
-    
-    template<typename... Ts>
-    struct ComponentGroup : BaseGroup {
+    struct ComponentGroup {
     private:
         System& parent;
         
@@ -175,12 +168,19 @@ protected:
             localDependencies.emplace(typeid(T).hash_code());
         }
 
+        ComponentGroup(System& s) : parent(s){
+            entities = std::set<Entity>();
+            parent.views.push_back(this);
+        }
+        
     public:
         
-        ComponentGroup(System& s) : parent(s){
-            [](...){}((componentGroupHelper<Ts>(),0)...);
-            parent.views.push_back(this);
-            entities = std::set<Entity>();
+        template<typename... Ts>
+        static ComponentGroup createComponentGroup(System& s){
+            ComponentGroup retVal = ComponentGroup(s);
+            [](...){}((retVal.componentGroupHelper<Ts>(),0)...);
+            return retVal;
+            
         }
         
         size_t size() const{
@@ -254,11 +254,13 @@ protected:
         
     };
     
+    
+    
     void Update();
 
 private:
     //Component Groups are the observers in a Observer/Listener pattern
-    std::vector<BaseGroup*> views;
+    std::vector<ComponentGroup*> views;
 
 public:
     std::unordered_set<size_t> getDependencies();
@@ -270,5 +272,7 @@ public:
 
     friend class World;
 };
+
+
 
 #endif /* ECS_hpp */

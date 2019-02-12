@@ -12,12 +12,12 @@ struct MyComponent : Component {
 }
 ```
 
-**Systems** are user-defined classes that are derived from the base `System` class and they are where the logic takes place. When constructed, they require a reference to the World they are created in. Later, world creation handles the initialization of the Systems, so don't worry too much about that, just know that the constructor will require that as a parameter. Systems use `ComponentGroup` definitions to determine on which entities the system will act.
+**Systems** are user-defined classes that are derived from the base `System` class and they are where the logic takes place. When constructed, they require a reference to the World they are created in. Later, world creation handles the initialization of the Systems, so don't worry too much about that, just know that the constructor will require that as a parameter. Systems use `ComponentGroup` definitions to determine on which entities the system will act. ComponentGroups are created with the public static `createComponentGroup<Ts...>(System& system)` method.
 
 ```
 class MySystem : System {
 public:
-    ComponentGroup<MyComponent> group = ComponentGroup<MyComponent>(*this);
+    ComponentGroup group = ComponentGroup::createComponentGroup<MyComponent>(*this);
 
     MySystem(World& w) : System (w) {
         std::cout << "Hello, World!";
@@ -69,7 +69,7 @@ To actually use the components, we can iterate through all entities that have ou
 ```
 class MySystem : System {
 public:
-    ComponentGroup<MyComponent> group = ComponentGroup<MyComponent>(*this);
+    ComponentGroup group = ComponentGroup::createComponentGroup<MyComponent>(*this);
 
     MySystem(World& w) : System (w) {
         std::cout << "Hello, World!";
