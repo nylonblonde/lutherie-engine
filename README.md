@@ -12,7 +12,9 @@ struct MyComponent : Component {
 }
 ```
 
-**Systems** are user-defined classes that are derived from the base `System` class and they are where the logic takes place. When constructed, they require a reference to the World they are created in. Later, world creation handles the initialization of the Systems, so don't worry too much about that, just know that the constructor will require that as a parameter. Systems use `ComponentGroup` definitions to determine on which entities the system will act. ComponentGroups are created with the public static `createComponentGroup<Ts...>(System& system)` method.
+**Systems** are user-defined classes that are derived from the base `System` class and they are where the logic takes place. When constructed, they require a reference to the World they are created in. Later, world creation handles the initialization of the Systems, so don't worry too much about what value to pass to the parameter, just know that the constructor will require a reference to a World in its definition. 
+
+Systems use `ComponentGroup` definitions to determine on which entities the system will act. ComponentGroups are created with the public static `createComponentGroup<Ts...>(System& system)` method where `Ts` are Component types.
 
 ```
 class MySystem : System {
@@ -77,7 +79,7 @@ public:
 
     virtual void OnUpdate(){
         for(size_t i = 0; i < group.size(); ++i){
-            std::cout << group.getComponent<MyComponent>(i) << " at " << group.getEntity(i) << std::endl;
+            std::cout << group.getComponent<MyComponent>(i).Value << " at " << group.getEntity(i) << std::endl;
         }
     }
 }
