@@ -44,7 +44,7 @@ Entity::Entity() {}
 Entity::~Entity() {}
 
 
-std::list<World> World::allWorlds = {};
+std::list<World*> World::allWorlds = {};
 uint32_t World::_staticId = 0;
 
 World::World() {
@@ -64,25 +64,24 @@ World::World() {
 World::~World() {}
 
 //call destroyWorld to clean up components and systems
-void World::destroyWorld(World *&worldPtr) {
+void World::destroyWorld(World *world) {
     auto it = allWorlds.begin();
     while(it != allWorlds.end()){
-        if(it->id() == worldPtr->id()){
+        if((*it)->id() == world->id()){
             
-            for(auto system : it->inactiveSystems){
+            for(auto system : (*it)->inactiveSystems){
                 delete system;
             }
             
-            for(auto system : it->activeSystems){
+            for(auto system : (*it)->activeSystems){
                 delete system;
             }
             
-            for(auto cIt = it->components.begin(); cIt != it->components.end(); cIt++){
+            for(auto cIt = (*it)->components.begin(); cIt != (*it)->components.end(); cIt++){
                 delete cIt->second;
             }
             
-            //set the pointer used to make the call to null
-            worldPtr = nullptr;
+            delete world;
             it = allWorlds.erase(it);
             break;
         }else{
@@ -124,9 +123,9 @@ void World::setComponent(Entity entity, Component* component) {
     
 }
 
-void World::updateActive(std::list<World>worlds){
-    for(World world : worlds){
-        for(auto system : world.activeSystems){
+void World::updateActive(std::list<World*>worlds){
+    for(World* world : worlds){
+        for(auto system : world->activeSystems){
             system->Update();
         }
     }

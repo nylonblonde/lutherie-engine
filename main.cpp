@@ -1,4 +1,6 @@
-#include "ECS.hpp"
+#define LUTHERIE_VULKAN
+
+#include "lutherie.hpp"
 
 using namespace ECS;
 
@@ -15,20 +17,17 @@ public:
     }
     
     virtual void OnUpdate(){
-//        std::cout << group.size() << std::endl;
+        std::cout << group.size() << std::endl;
     }
     
 };
 
 int main(){
-    
     World* world = World::createWorld<MySystem>();
     Entity entity = world->createEntity();
     world->setComponent(entity, new MyComponent());
     
-//    while(true){
-//        World::updateActive(World::allWorlds);
-//    }
+    Lutherie lutherie = Lutherie();
     
     return 0;
 }

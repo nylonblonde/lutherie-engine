@@ -83,17 +83,16 @@ namespace ECS {
         
     public:
         uint32_t id() const { return _id; }
-        static std::list<World> allWorlds;
+        static std::list<World*> allWorlds;
         
         template<typename...T>
         static World* createWorld(){
-            World world = World();
-            allWorlds.push_back(std::move(world));
-            allWorlds.back().createSystem<T...>();
-            return &allWorlds.back();
+            allWorlds.emplace(allWorlds.end(), new World);
+            allWorlds.back()->createSystem<T...>();
+            return allWorlds.back();
         }
 
-        static void destroyWorld(World*& worldPtr);
+        static void destroyWorld(World* worldPtr);
         std::vector<Entity> entities;
         std::unordered_multimap<Entity, Component*> getComponents() const { return components; }
         
@@ -141,7 +140,7 @@ namespace ECS {
             return false;
         }
         
-        static void updateActive(std::list<World>worlds);
+        static void updateActive(std::list<World*>worlds);
 
         World();
         ~World();
