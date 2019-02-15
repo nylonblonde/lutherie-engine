@@ -6,6 +6,13 @@
 #endif
 #include <GLFW/glfw3.h>
 
+//#include <assimp/Importer.hpp>
+//#include <assimp/scene.h>
+
+//#include <glm/vec3.hpp>
+//#include <glm/vec4.hpp>
+//#include <glm/mat4x4.hpp>
+
 #include "ECS.hpp"
 
 const int WIDTH = 800;
@@ -16,11 +23,25 @@ using namespace ECS;
 class Lutherie {
 public:
     
-    static Lutherie& Instance() {
-        static Lutherie instance;
-        return instance;
+    static bool importAll3D(){
+        return false;
     }
-       
+    
+    static bool import3D(const std::string& pFile){
+//        Assimp::Importer importer;
+//
+//        const aiScene scene = importer.ReadFile(pFile);
+//
+//        if(!scene){
+//            throw std::runtime_error(importer.GetErrorString());
+//            return false;
+//        }
+
+        return true;
+    }
+    
+    static Lutherie& Instance();
+    
     Lutherie(Lutherie const&) = delete;
     void operator=(Lutherie const&) = delete;
         

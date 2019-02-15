@@ -41,10 +41,7 @@ Component::~Component() {}
 
 Entity::Entity() {}
 
-Entity::~Entity() {}
-
-
-std::list<World*> World::allWorlds = {};
+std::vector<World*> World::allWorlds = {};
 uint32_t World::_staticId = 0;
 
 World::World() {
@@ -60,8 +57,6 @@ World::World() {
     inactiveSystems = std::vector<System*>();
 
 }
-
-World::~World() {}
 
 //call destroyWorld to clean up components and systems
 void World::destroyWorld(World *world) {
@@ -123,7 +118,7 @@ void World::setComponent(Entity entity, Component* component) {
     
 }
 
-void World::updateActive(std::list<World*>worlds){
+void World::updateActive(std::vector<World*>worlds){
     for(World* world : worlds){
         for(auto system : world->activeSystems){
             system->Update();

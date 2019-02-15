@@ -2,7 +2,6 @@
 #define ECS_hpp
 #include <iostream>
 #include <vector>
-#include <list>
 #include <variant>
 #include <algorithm>
 #include <map>
@@ -35,12 +34,10 @@ namespace ECS {
 
     private:
         uint32_t _id;
-        
+        Entity();
+
     public:
         uint32_t id() const { return _id; };
-
-        Entity();
-        ~Entity();
         
         //TODO: felt it was necessary to use Entity as a key rather than just the id because eventually either GUID or a combination of id and version will have to be used to distinguish entities. incremental id is fine for now, but obviously has scaling pitfalls
         bool operator ==(const Entity &other) const { return id() == other.id(); }
@@ -72,6 +69,7 @@ namespace ECS {
         std::vector<System*> activeSystems;
         std::vector<System*> inactiveSystems;
         std::unordered_multimap<Entity, Component*> components;
+        World();
 
     protected:
 
@@ -83,13 +81,13 @@ namespace ECS {
         
     public:
         uint32_t id() const { return _id; }
-        static std::list<World*> allWorlds;
+        static std::vector<World*> allWorlds;
         
         template<typename...T>
-        static World* createWorld(){
+        static World& createWorld(){
             allWorlds.emplace(allWorlds.end(), new World);
             allWorlds.back()->createSystem<T...>();
-            return allWorlds.back();
+            return *allWorlds.back();
         }
 
         static void destroyWorld(World* worldPtr);
@@ -140,10 +138,8 @@ namespace ECS {
             return false;
         }
         
-        static void updateActive(std::list<World*>worlds);
+        static void updateActive(std::vector<World*>worlds);
 
-        World();
-        ~World();
     };
 
 

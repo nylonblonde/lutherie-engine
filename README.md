@@ -45,9 +45,9 @@ On cleanup, the public method `destroyWorld()` should be called on all created w
 `Component`s require an `Entity` to be "attached" to. Entities are essentially just a glorified index that Components are organized by. Entities should be created by `World`'s public `createEntity()` method. This is so indexing can be handled properly.
 
 ```
-// createWorld returns a pointer to a World stored in the static list World::allWorlds
-World* world = World::createWorld<MySystem>();
-Entity entity = world->createEntity();
+// createWorld returns a reference to a World stored in the static vector World::allWorlds
+World& world = World::createWorld<MySystem>();
+Entity entity = world.createEntity();
 ```
 
 Components are allocated with `new` and are passed to the `setComponent()` method.
@@ -55,13 +55,13 @@ Components are allocated with `new` and are passed to the `setComponent()` metho
 ```
 MyComponent* myComponent = new MyComponent();
 myComponent->Value = 1;
-world->setComponent(entity, myComponent);
+world.setComponent(entity, myComponent);
 ```
 
 Components can be removed from an Entity to stop that Entity from having any System that acts on that Component from acting on it anymore.
 
 ```
-world->removeEntity<MyComponent>(entity);
+world.removeEntity<MyComponent>(entity);
 ```
 
 ## Making Use of Components in a System
@@ -85,4 +85,4 @@ public:
 }
 ```
 
-And finally, to run an update tick, you just need to call the static `World::updateActive(World::allWorlds)`. Notice that this takes a list of worlds as a parameter, so it can be executed on all current worlds or even just a user-defined selection of them.
+And finally, to run an update tick, you just need to call the static `World::updateActive(World::allWorlds)`. Notice that this takes a `vector<World*>` as a parameter, so it can be executed on all current worlds or even just a user-defined selection of them.

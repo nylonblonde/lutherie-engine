@@ -5,6 +5,11 @@ Lutherie::Lutherie(){
     mainLoop();
 }
 
+Lutherie& Lutherie::Instance(){
+    static Lutherie instance;
+    return instance;
+}
+
 void Lutherie::initWindow(){
     glfwInit();
     

@@ -23,9 +23,9 @@ public:
 };
 
 int main(){
-    World* world = World::createWorld<MySystem>();
-    Entity entity = world->createEntity();
-    world->setComponent(entity, new MyComponent());
+    World& world = World::createWorld<MySystem>();
+    Entity entity = world.createEntity();
+    world.setComponent(entity, new MyComponent());
     
     Lutherie lutherie = Lutherie();
     
