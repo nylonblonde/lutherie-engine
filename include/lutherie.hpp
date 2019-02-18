@@ -1,6 +1,8 @@
 #ifndef lutherie_hpp
 #define lutherie_hpp
 
+#include <luajit-2.0/lua.hpp>
+
 #ifdef LUTHERIE_VULKAN
 #define GLFW_INCLUDE_VULKAN
 #endif
@@ -13,7 +15,7 @@
 //#include <glm/vec4.hpp>
 //#include <glm/mat4x4.hpp>
 
-#include "ECS.hpp"
+#include <ECS.hpp>
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -45,9 +47,17 @@ public:
     Lutherie(Lutherie const&) = delete;
     void operator=(Lutherie const&) = delete;
         
-    Lutherie();
+    Lutherie(const char* dir);
+    ~Lutherie();
     
 private:
+    
+    const char* projectDir;
+    
+    lua_State* state;
+    void printLuaError();
+    void executeLua(const char* filename);
+    
     GLFWwindow* window;
     bool frameBufferResized = false;
     
@@ -56,6 +66,8 @@ private:
     
     void mainLoop();
     void gameLoop();
+    
+    Lutherie();
 };
 
 #endif /* lutherie_hpp */

@@ -1,0 +1,34 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/ECS.hpp
+iostream
+-
+vector
+-
+variant
+-
+algorithm
+-
+map
+-
+unordered_map
+-
+set
+-
+unordered_set
+-
+iterator
+-
+
+/Users/lyon/Documents/lutherie-engine/ECS/src/ECS.cpp
+ECS.hpp
+/Users/lyon/Documents/lutherie-engine/ECS/src/ECS.hpp
+iostream
+-
+
