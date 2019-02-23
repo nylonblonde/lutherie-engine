@@ -1,10 +1,6 @@
 #define LUTHERIE_VULKAN
 
 #include "lutherie.hpp"
-#include <fstream>
-#include <stdio.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 
 using namespace ECS;
 
@@ -25,85 +21,6 @@ public:
     }
     
 };
-
-static bool pathExists(const char* path){
-    struct stat info;
-    
-    if(stat(path, &info) != 0){
-        return false;
-    }else if(info.st_mode & S_IFDIR){
-        return true;
-    }
-
-    return false;
-}
-
-static bool makePath(const char* path){
-
-    char newPath[strlen(path)];
-    strcpy(newPath, path);
-    
-    for(int i = strlen(path)-1; i > 0; --i){
-        if(path[i] == '\0'){
-            continue;
-        }
-
-    #if defined(_WIN32) || defined(_WIN64)
-        int dashed = (path[i] == '\\');
-    #else
-        int dashed = (path[i] == '/');
-    #endif
-
-        if(dashed){
-            if(i == strlen(path)){
-                continue;
-            }
-            
-            if(mkdir(newPath, 0777) == 0){
-                makePath(path);
-                break;
-            }else if(errno == EEXIST) {
-                break;
-            }
-            
-            strncpy(newPath, path, i);
-            newPath[i] = '\0';
-        }
-    }
-    
-    if(pathExists(path)){
-        return true;
-    }
-
-    return false;
-}
-
-static bool addSubDirectory(const char* path, const char* subdir){
-    char subdirPath[strlen(path)+strlen(subdir)+1];
-    
-#if defined(_WIN32) || defined(_WIN64)
-    int needsSlash = path[strlen(path)] != '\\' && subdir[0] != '\\';
-#else
-    int needsSlash = path[strlen(path)] != '/' && subdir[0] != '/';
-#endif
-    std::cout << needsSlash << std::endl;
-
-    strcpy(subdirPath, path);
-
-    if(needsSlash == 1){
-#if defined(_WIN32) || defined(_WIN64)
-        strcat(subdirPath, "\\");
-#else
-        strcat(subdirPath, "/");
-#endif
-    }
-
-    strcat(subdirPath, subdir);
-    
-    std::cout << subdirPath << std::endl;
-    
-    return makePath(subdirPath);
-}
 
 int main(int carg, char* args[]){
     
@@ -131,10 +48,32 @@ int main(int carg, char* args[]){
             
             std::cout << path << std::endl;
             
-            if(makePath(path)){
+            if(fs::makePath(path)){
                 
-                if(addSubDirectory(path, "scripts") && addSubDirectory(path, "resources")){
-                    Lutherie lutherie = Lutherie(path);
+                char scriptsDir[] = "scripts/";
+                char resDir[] = "resources/";
+                char libDir[] = "lib/";
+                
+                if(fs::addSubDirectory(path, scriptsDir) && fs::addSubDirectory(path, resDir) && fs::addSubDirectory(path, libDir)){
+                    char scriptsPath[strlen(path)+strlen(scriptsDir)+1];
+                    char resPath[strlen(path)+strlen(resDir)+1];
+                    char libPath[strlen(path)+strlen(libDir)+1];
+
+                    strcpy(scriptsPath, path);
+                    strcpy(resPath, path);
+                    strcpy(libPath, path);
+                    
+                    fs::addOSSlash(scriptsPath);
+                    fs::addOSSlash(resPath);
+                    fs::addOSSlash(libPath);
+                    
+                    strcat(scriptsPath, scriptsDir);
+                    strcat(resPath, resDir);
+                    strcat(libPath, libDir);
+                    
+                    //TODO: copy default libraries to project's library directory. Change addSubdirectory to return int so we can detect if directory was created or existed
+                    
+                    Lutherie lutherie = Lutherie(path, scriptsPath, resPath, libPath);
                 }
             }
         

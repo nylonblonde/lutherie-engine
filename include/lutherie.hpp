@@ -15,7 +15,8 @@
 //#include <glm/vec4.hpp>
 //#include <glm/mat4x4.hpp>
 
-#include <ECS.hpp>
+#include <Lutherie/ECS.hpp>
+#include "fs.h"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -47,13 +48,16 @@ public:
     Lutherie(Lutherie const&) = delete;
     void operator=(Lutherie const&) = delete;
         
-    Lutherie(const char* dir);
+    Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir);
     ~Lutherie();
     
 private:
     
     const char* projectDir;
-    
+    const char* scriptsDir;
+    const char* resourcesDir;
+    const char* libDir;
+
     lua_State* state;
     void printLuaError();
     void executeLua(const char* filename);

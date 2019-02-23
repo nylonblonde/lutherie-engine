@@ -1,7 +1,7 @@
 file(REMOVE_RECURSE
   "CMakeFiles/ECS.dir/src/ECS.cpp.o"
   "libECS.pdb"
-  "libECS.a"
+  "libECS.dylib"
 )
 
 # Per-language clean rules from dependency scanning.

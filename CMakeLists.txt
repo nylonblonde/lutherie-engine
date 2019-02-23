@@ -22,7 +22,7 @@ target_include_directories(Lutherie PUBLIC ECS/include include ${LUA_INCLUDE_DIR
 set_target_properties(Lutherie PROPERTIES 
 	CXX_STANDARD 17
 	)
-
+if(APPLE)
 target_link_options(Lutherie PUBLIC "-pagezero_size 10000 -image_base 100000000")
-
+endif()
 target_link_libraries(Lutherie ${LINK_LIBS})

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13.3)
 project(ECS)
 
-add_library(ECS STATIC src/ECS.cpp)
+add_library(ECS SHARED src/ECS.cpp)
 
 set_target_properties(ECS PROPERTIES 
 	PUBLIC_HEADER include/ECS.hpp
@@ -10,4 +10,4 @@ set_target_properties(ECS PROPERTIES
 
 target_include_directories(ECS PUBLIC include)
 
-#install(TARGETS ECS ARCHIVE DESTINATION ../libs PUBLIC_HEADER DESTINATION ../include)
+#install(TARGETS ECS LIBRARY DESTINATION /usr/local/lib)

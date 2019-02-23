@@ -2,7 +2,7 @@
 
 Lutherie::Lutherie(){}
 
-Lutherie::Lutherie(const char* dir) : projectDir(dir) {
+Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir) : projectDir(dir), scriptsDir(sDir), resourcesDir(rDir), libDir(lDir) {
     
     state = luaL_newstate();
     
@@ -11,7 +11,9 @@ Lutherie::Lutherie(const char* dir) : projectDir(dir) {
     }
     luaL_openlibs(state);
 
-    executeLua("/Users/lyon/Documents/lutherie-engine/scripts/test.lua");
+    executeLua("test.lua");
+    
+    std::cout << World::allWorlds.size() << std::endl;
     
     initWindow();
     mainLoop();
@@ -23,7 +25,13 @@ Lutherie::~Lutherie(){
 
 void Lutherie::executeLua(const char* filename){
     
-    int result = luaL_loadfile(state, filename);
+    char fullPath[strlen(scriptsDir) + strlen(filename)+1];
+    strcpy(fullPath, scriptsDir);
+    strcat(fullPath, filename);
+
+    printf("%s\n", fullPath);
+    
+    int result = luaL_loadfile(state, fullPath);
     
     if(result != 0) {
         printLuaError();

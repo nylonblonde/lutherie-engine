@@ -248,3 +248,9 @@ bool World::removeEntity(Entity entity){
     }
     return false;
 }
+
+extern "C" void* createWorld() {
+    World& world = World::createWorld<>();
+    
+    return &world;
+}

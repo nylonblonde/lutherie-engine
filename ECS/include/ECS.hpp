@@ -276,5 +276,6 @@ namespace ECS {
 
 }
 
+extern "C" void* createWorld();
 
 #endif /* ECS_hpp */
