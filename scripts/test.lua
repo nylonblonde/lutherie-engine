@@ -8,7 +8,33 @@ local C = ffi.C
 
 --print("Hello, world!")
 
-Class = {}
+local function copy(obj, copies)
+    copies = copies or {}
+    local objType = type(obj)
+    local res
+    if objType == 'table' then
+        if copies[obj] then
+            res = copies[obj]
+        else
+            res = {}
+            for k,v in next, obj, nil do
+                --prevent recursively copying forever when __index == self. Not sure if this essentially breaks inheritance, but it doesn't seem to
+                if(obj == v) then
+                    copies[obj] = v    
+                end
+                
+                res[copy(k, copies)] = copy(v, copies)  
+            end
+            copies[obj] = res
+            setmetatable(res, copy(getmetatable(obj), copies))
+        end
+    else
+       res = obj 
+    end
+    return res
+end
+
+local Class = {}
 
 function Class:Derived(obj) 
     obj = obj or {}
@@ -18,48 +44,91 @@ function Class:Derived(obj)
     return obj
 end
 
+local Worlds = {}
+
+local function EntityFactory()
+    local factory = {
+        id = 0
+    }
+    
+    return {
+        new = function()
+            local private = {
+                id = factory.id+1
+            }
+            factory.id = private.id
+            return {
+                getId = function() return private.id end
+            }
+        end,
+    }
+end
+
 local World = {
-    __index = World,
-    new = function()
-        self = setmetatable({
-                inactiveSystems = {},
-                activeSystems = {},
-                id = 0,
-            }, World)
-        return self
+    new = function(...) 
+        local private = {
+            components = {},
+            inactiveSystems = {},
+            activeSystems = {},
+            Entity = EntityFactory()
+        }
+        
+        local Entity = EntityFactory()
+        
+        local arg = {...}
+        
+        for i,v in ipairs(arg) do
+            assert(type(v) == "function", "CreateWorld must take functions as arguments")
+            table.insert(private.inactiveSystems, v())
+        end
+        
+        self = {
+            
+            getComponents = function() 
+                return copy(private.components)
+            end,
+            
+            getInactiveSystems = function() 
+--                print(#private.inactiveSystems)
+                return copy(private.inactiveSystems)
+            end,
+            
+            getActiveSystems = function() 
+                return copy(private.activeSystems)
+            end,
+            
+            createEntity = function()
+                entity = private.Entity.new()
+                private.components[entity.getId()] = {1,2,3,4,5}
+                return entity
+            end,
+            
+            id = #Worlds+1
+        }
+        
+        table.insert(Worlds, self)
+        return Worlds[self.id]
     end
 }
 
-Worlds = {}
-
 function CreateWorld(...)
-    local arg = {...}
-    world = World.new()
-    for i,v in ipairs(arg) do
-        table.insert(world.inactiveSystems, v())
-    end
-    world.id = #Worlds+1
-    table.insert(Worlds, world)
-    return Worlds[world.id]
+    return World.new(...)
 end
 
-function copy(obj)
-    if(type(obj) ~= "table") then return obj end
-    local res = {}
-    for k,v in pairs(obj) do
-        res[copy(k)] = copy(v) 
-    end
-    return res
+function getWorlds()
+    return Worlds;
 end
 
-function System()
-    local private = {
+
+local function SystemFactory()
+    local factory = {
         dependencies = {true}
     }
 
-    self = Class:Derived{
+    return Class:Derived{
+        
         getDependencies = function() 
-            return copy(private.dependencies)    
+            return copy(factory.dependencies)    
         end,
     
         OnUpdate = function(self)
@@ -68,21 +137,30 @@ function System()
     
         ComponentGroup = function(self, ...)
             local arg = {...}
---            assert(type(v) == "string", "ComponentGroup can only take strings as argument")
+            local private = {
+                entities = {},
+                components = {},
+                dependencies = {}
+            }
+            
             for i,v in ipairs(arg) do
-                table.insert(private.dependencies, v)    
+                assert(type(v) == "function", "ComponentGroup must take functions as arguments")
+                table.insert(factory.dependencies, v)    
             end
+            
+            return {
+                getDependencies = function() return copy(private.dependencies) end,
+            }
         end
     }
 
-    return self
 end
 
-System = System()
+local System = SystemFactory()
 
-local Component = Class:Derived{
-    __index = Component
-}
+local Component = Class:Derived{}
+
+local world = CreateWorld(MeshSystem, RenderSystem)
 
 function MeshComponent()
     return Component:Derived {
@@ -90,19 +168,19 @@ function MeshComponent()
     }
 end
 
-function MeshSystem(...)
+function MeshSystem()
     self = System:Derived {
         OnUpdate = function(self)
 --            print "hheyyy"    
         end
     }
-    print(#self.getDependencies())
+--    print(#self.getDependencies())
     return self
 end
 
-function RenderSystem(...)
+function RenderSystem()
     self = System:Derived {
-        componentGroup = self.ComponentGroup(MeshComponent),
+        componentGroup = self:ComponentGroup(MeshComponent),
         OnUpdate = function(self)
 --            self.super.OnUpdate()
         end
@@ -110,37 +188,17 @@ function RenderSystem(...)
     return self
 end
 
-local world = CreateWorld(MeshSystem, RenderSystem)
-
-function TestPrivacy(...)
-    local private = {
-        privateTest = 546548
-    }
-    return System:Derived {
-        getTest = function() return private.privateTest end
-    }
+local x = os.clock()
+for i=1, 10000 do 
+    local entity = world.createEntity()
+--    for k,v in next, world.getComponents()[entity.getId()], nil do
+----        print(k,v)
+--    end
+    local world2 = CreateWorld(MeshSystem, RenderSystem)
+    local entity2 = world2.createEntity()
+--    print(entity.getId(), entity2.getId())
 end
-
---print(world.inactiveSystems[1].dependencies)
-
---local world = CreateWorld("MeshSystem", "RenderSystem");
---print(world.id);
---
---local world = CreateWorld("MeshSystem", "RenderSystem");
---world.id = ecs.getWorldId(world.super);
---print(world.id);
-
---local world = ecs.createWorld()
---
---local entity = ecs.createEntity(world);
---
---local entity = ecs.createEntity(world);
---
---local meshSystem = MeshSystem(world)
---
---component = ecs.newComponent(world, entity)
---
---local renderSystem = RenderSystem(world)
---renderSystem:OnUpdate()
+--print(#Worlds)
+print("elapsed time:", os.clock()-x)
 
 
