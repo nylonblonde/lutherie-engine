@@ -35,11 +35,11 @@ std::unordered_set<size_t> System::getDependencies(){
     return dependencies;
 }
 
-Component::Component()  {}
+//Component::Component()  {}
 
-Component::~Component() {}
+//Component::~Component() {}
 
-Entity::Entity() {}
+//Entity::Entity() {}
 
 std::vector<World*> World::allWorlds = {};
 uint32_t World::_staticId = 0;
@@ -93,12 +93,15 @@ Entity World::createEntity(){
     entity._id = _entityId;
     entities.push_back(entity);
     _entityId+=1;
+    
+    std::cout << "Created entity " << entity.id() << " in world " << this->id() << std::endl; 
+    
     return entities.back();
 }
 
 
 
-void World::setComponent(Entity entity, Component* component) {
+Component* World::setComponent(Entity entity, Component* component) {
 
     auto its = components.equal_range(entity);
     if(its.first != its.second){
@@ -107,7 +110,7 @@ void World::setComponent(Entity entity, Component* component) {
                 delete it->second;
                 (*it).second = component;
                 std::cout << "Replaced component " << component->getType() << " for entity " << entity.id() << " to world " << this->id() <<  std::endl;
-                return;
+                return component;
             }
         }
     }
@@ -115,7 +118,7 @@ void World::setComponent(Entity entity, Component* component) {
     components.emplace(entity, component);
     std::cout<< "Inserted component " << component->getType() << " for entity " << entity.id() << " in world " << this->id() << std::endl;
     queryInactiveSystems();
-    
+    return component;
 }
 
 void World::updateActive(std::vector<World*>worlds){
@@ -127,7 +130,7 @@ void World::updateActive(std::vector<World*>worlds){
 }
 
 void World::queryInactiveSystems(){
-
+    
     auto it = inactiveSystems.begin();
     while(it != inactiveSystems.end()){
 
@@ -249,8 +252,43 @@ bool World::removeEntity(Entity entity){
     return false;
 }
 
-extern "C" void* createWorld() {
-    World& world = World::createWorld<>();
+System* World::registerSystem(System* system){
+    inactiveSystems.emplace(inactiveSystems.end(), system);
+    return inactiveSystems.back();
+}
+
+void World::setObjectType(TypedObject& obj, size_t type){
+    obj.type = type;
+}
+
+extern "C"{
+    void* createWorld() {
+        World& world = World::createWorld<>();
+
+        return &world;
+    }
     
-    return &world;
+    int getWorldId(World* world) {
+        int id = world->id();
+        return id;
+    }
+
+    void* newSystem(World* world) {
+        System* system = world->registerSystem(new System(*world));
+        return system;
+    }
+
+    void* newComponent(World* world, Entity entity) {
+        Component* component = world->setComponent(entity, new Component());
+        return component;
+    }
+
+    void setSystemDependencies(System* system){
+
+    }
+    
+    Entity createEntity(World* world) {
+        Entity entity = world->createEntity();
+        return entity;
+    }
 }
