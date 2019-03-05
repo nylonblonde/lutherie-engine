@@ -35,9 +35,9 @@ std::unordered_set<size_t> System::getDependencies(){
     return dependencies;
 }
 
-//Component::Component()  {}
+Component::Component()  {}
 
-//Component::~Component() {}
+Component::~Component() {}
 
 //Entity::Entity() {}
 
@@ -51,7 +51,7 @@ World::World() {
     _staticId+=1;
     entities = std::vector<Entity>();
     components = std::unordered_multimap<Entity, Component*>();
-    std::cout << "Components initialized " << components.size() << std::endl;
+//    std::cout << "Components initialized " << components.size() << std::endl;
     //systems are allocated in dynamic memory and will be deleted on destroyWorld
     activeSystems = std::vector<System*>();
     inactiveSystems = std::vector<System*>();
@@ -94,7 +94,7 @@ Entity World::createEntity(){
     entities.push_back(entity);
     _entityId+=1;
     
-    std::cout << "Created entity " << entity.id() << " in world " << this->id() << std::endl; 
+//    std::cout << "Created entity " << entity.id() << " in world " << this->id() << std::endl; 
     
     return entities.back();
 }
@@ -252,43 +252,43 @@ bool World::removeEntity(Entity entity){
     return false;
 }
 
-System* World::registerSystem(System* system){
-    inactiveSystems.emplace(inactiveSystems.end(), system);
-    return inactiveSystems.back();
-}
+//System* World::registerSystem(System* system){
+//    inactiveSystems.emplace(inactiveSystems.end(), system);
+//    return inactiveSystems.back();
+//}
 
-void World::setObjectType(TypedObject& obj, size_t type){
-    obj.type = type;
-}
+//void World::setObjectType(TypedObject& obj, size_t type){
+//    obj.type = type;
+//}
 
-extern "C"{
-    void* createWorld() {
-        World& world = World::createWorld<>();
-
-        return &world;
-    }
-    
-    int getWorldId(World* world) {
-        int id = world->id();
-        return id;
-    }
-
-    void* newSystem(World* world) {
-        System* system = world->registerSystem(new System(*world));
-        return system;
-    }
-
-    void* newComponent(World* world, Entity entity) {
-        Component* component = world->setComponent(entity, new Component());
-        return component;
-    }
-
-    void setSystemDependencies(System* system){
-
-    }
-    
-    Entity createEntity(World* world) {
-        Entity entity = world->createEntity();
-        return entity;
-    }
-}
+//extern "C"{
+//    void* createWorld() {
+//        World& world = World::createWorld<>();
+//
+//        return &world;
+//    }
+//    
+//    int getWorldId(World* world) {
+//        int id = world->id();
+//        return id;
+//    }
+//
+//    void* newSystem(World* world) {
+//        System* system = world->registerSystem(new System(*world));
+//        return system;
+//    }
+//
+//    void* newComponent(World* world, Entity entity) {
+//        Component* component = world->setComponent(entity, new Component());
+//        return component;
+//    }
+//
+//    void setSystemDependencies(System* system){
+//
+//    }
+//    
+//    Entity createEntity(World* world) {
+//        Entity entity = world->createEntity();
+//        return entity;
+//    }
+//}

@@ -13,33 +13,23 @@
 namespace ECS {
 
     struct TypedObject {
-    private:
-        size_t type = -1;
-    protected:
-        void setType(const size_t &t) {
-            type = t;
-        }
     public:
         virtual size_t getType() const {
-            if(type == -1){
-                return typeid(*this).hash_code();
-            }
-            return type; 
+            return typeid(*this).hash_code();
         }
 
-        friend class World;
     };
 
     struct Component : TypedObject  {
 
-//    public:
+    public:
         
-//        Component();
-//        ~Component();
+        Component();
+        ~Component();
         
         friend class World;
     };
-    
+
     struct Entity {
 
     private:
@@ -83,6 +73,7 @@ namespace ECS {
 
     protected:
 
+        
         template <typename... T>
         void createSystem(){
             [](...){ }((inactiveSystems.emplace(inactiveSystems.end(), new T(*this)), 0)...);
@@ -99,8 +90,6 @@ namespace ECS {
             return *allWorlds.back();
         }
 
-        System* registerSystem(System* system);
-        
         static void destroyWorld(World* worldPtr);
         std::vector<Entity> entities;
         std::unordered_multimap<Entity, Component*> getComponents() const { return components; }
@@ -110,7 +99,7 @@ namespace ECS {
         
         Entity createEntity();
         bool removeEntity(Entity entity);
-        
+
         template<typename T>
         bool getComponent(Entity entity, Component* component) {
             auto range = components.equal_range(entity);
@@ -126,7 +115,6 @@ namespace ECS {
         }
         
         Component* setComponent(Entity entity, Component* component);
-        void setObjectType(TypedObject& obj, size_t type);
         
         template<typename T>
         bool removeComponent(Entity entity){
@@ -288,7 +276,5 @@ namespace ECS {
 
 }
 
-//extern "C" void* createWorld();
-//extern "C" void* newSystem(World* world);
 
 #endif /* ECS_hpp */
