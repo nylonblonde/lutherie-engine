@@ -66,39 +66,58 @@ namespace ECS {
         
         uint32_t _id;
 
-        std::vector<System*> activeSystems;
-        std::vector<System*> inactiveSystems;
-        std::unordered_multimap<Entity, Component*> components;
+        
         World();
 
-    protected:
-
+        bool removeComponentHelper(const Entity entity, const size_t typeCode);
         
+    protected:
+        std::vector<System*> activeSystems;
+        std::vector<System*> inactiveSystems;
+        std::unordered_set<Entity> entities;
+        std::unordered_multimap<Entity, Component*> components;
         template <typename... T>
         void createSystem(){
             [](...){ }((inactiveSystems.emplace(inactiveSystems.end(), new T(*this)), 0)...);
         }
         
+        void addSystem(){}
+        
+        template<typename... Args>
+        void addSystem(System* s, Args... args){
+            this->inactiveSystems.emplace(inactiveSystems.end(), *std::move(&s));
+            std::cout << "There are now " << inactiveSystems.size() << std::endl;
+            addSystem(args...);
+        }
+                
     public:
         uint32_t id() const { return _id; }
         static std::vector<World*> allWorlds;
         
+        template<typename... Args>
+        static World& createWorld(System* s, Args... args){
+            allWorlds.emplace(allWorlds.end(), new World());
+            World* world = allWorlds.back();
+            world->addSystem(s, args...);
+            return *world;
+        }
+        
         template<typename...T>
         static World& createWorld(){
-            allWorlds.emplace(allWorlds.end(), new World);
+            allWorlds.emplace(allWorlds.end(), new World());
             allWorlds.back()->createSystem<T...>();
             return *allWorlds.back();
         }
 
         static void destroyWorld(World* worldPtr);
-        std::vector<Entity> entities;
         std::unordered_multimap<Entity, Component*> getComponents() const { return components; }
+//        Entity getEntity(Entity entity) const { return *entities.find(entity); }
         
         void queryActiveSystems();
         void queryInactiveSystems();
         
-        Entity createEntity();
-        bool removeEntity(Entity entity);
+        const Entity& createEntity();
+        void removeEntity(const Entity entity);
 
         template<typename T>
         bool getComponent(Entity entity, Component* component) {
@@ -114,28 +133,13 @@ namespace ECS {
             return false;
         }
         
-        Component* setComponent(Entity entity, Component* component);
+        Component* setComponent(const Entity entity, Component* component);
+        
+        bool removeComponent(const Entity entity, Component* component);
         
         template<typename T>
-        bool removeComponent(Entity entity){
-            auto its = components.equal_range(entity);
-            if(its.first != its.second){
-                auto it = its.first;
-                while(it != its.second){
-                    size_t typeCode = typeid(T).hash_code();
-                    if(it->second->getType() == typeCode){
-                        delete it->second;
-                        it = components.erase(it);
-                        std::cout << "Removed component " << typeCode << " for entity " << entity.id() << " from world " << this->id() <<  std::endl;
-                        queryActiveSystems();
-                        return true;
-                    }else{
-                        it++;
-                    }
-                }
-            }
-            
-            return false;
+        bool removeComponent(const Entity entity){
+            return removeComponentHelper(entity, typeid(T).hash_code());
         }
         
         static void updateActive(std::vector<World*>worlds);
@@ -153,15 +157,10 @@ namespace ECS {
         std::unordered_set<size_t> dependencies;
 
         //ComponentGroup will be notified when there is a change
-        void notifyComponentChange();
+        virtual void notifyComponentChange();
         
         struct ComponentGroup {
         private:
-            System& parent;
-            
-            std::multimap<size_t, Component*> components;
-            std::unordered_set<size_t> localDependencies;
-            std::set<Entity> entities;
             
             template<typename T>
             void componentGroupHelper(){
@@ -169,16 +168,23 @@ namespace ECS {
                 localDependencies.emplace(typeid(T).hash_code());
             }
 
+        protected:
+            System& parent;
+            
+            std::multimap<size_t, Component*> components;
+            std::unordered_set<size_t> localDependencies;
+            std::set<Entity> entities; 
+            
             ComponentGroup(System& s) : parent(s){
                 entities = std::set<Entity>();
                 parent.views.push_back(this);
             }
-            
         public:
             
             template<typename... Ts>
             static ComponentGroup createComponentGroup(System& s){
                 ComponentGroup retVal = ComponentGroup(s);
+                std::cout << "what's happening " << retVal.entities.size() << std::endl;
                 [](...){}((retVal.componentGroupHelper<Ts>(),0)...);
                 return retVal;
                 
@@ -188,53 +194,7 @@ namespace ECS {
                 return entities.size();
             }
             
-            virtual void updateComponents(){
-               
-                entities.clear();
-                components.clear();
-                auto allComponents = parent.world.getComponents();
-                auto tempDependencies = localDependencies;
-                
-                std::set<Component*> tempComponents = std::set<Component*>();
-                
-                auto it = allComponents.begin();
-
-                auto range = allComponents.equal_range(it->first);
-
-                //the reason we don't do a nested loop here is because my tests showed it was slightly faster to do it as a single loop, and performance is critical for this function as it will run whenever components are added or removed
-                while(it != allComponents.end()){
-
-                    auto dIt = tempDependencies.find(it->second->getType());
-                    if(dIt != tempDependencies.end()){
-                        tempComponents.insert(it->second);
-                        tempDependencies.erase(dIt);
-                    }
-                    
-                    if(tempDependencies.size() == 0){
-
-                        for(auto cIt = tempComponents.begin(); cIt != tempComponents.end(); ++cIt){
-                            components.emplace((*cIt)->getType(), *cIt);
-                        }
-                        entities.insert(it->first);
-                        tempComponents.clear();
-                        tempDependencies = localDependencies;
-                        it = range.second;
-                        if(it == allComponents.end()){
-                            break;
-                        }
-                        range = allComponents.equal_range(it->first);
-                        continue;
-                    }
-                
-                    it++;
-                    
-                    if(range.second != allComponents.end() && it == range.second){
-                        tempDependencies = localDependencies;
-                        tempComponents.clear();
-                        range = allComponents.equal_range(it->first);
-                    }
-                }
-            }
+            virtual void updateComponents();
             
             template<typename T>
             T& getComponent (size_t index) const {
@@ -253,10 +213,8 @@ namespace ECS {
                 return *it;
             }
             
-        };
-        
-        
-        
+        }; //ComponentGroup
+
         void Update();
 
     private:

@@ -1,12 +1,37 @@
 local ffi = require("ffi")
 
 ffi.cdef[[
-	
+	typedef struct World World;
+    typedef struct System System;
+    typedef struct ComponentGroup ComponentGroup;
+    typedef struct Component Component;
+    typedef struct Entity Entity;
+
+    World* createWorld();
+    int world_id(World* world);
+
+    System* createSystem(World* world, const char* name);
+    void registerSystem(World* world, System* system);
+
+    Entity* createEntity(World* world);
+    void removeEntity(World* world, Entity* entity);
+
+    Component* setComponent(World* world, Entity* entity, int componentType);
+    void removeComponent(World* world, Entity* entity, Component* component);
+
+    ComponentGroup* createComponentGroup(System* system);
+    void addComponentDependency(System* system, ComponentGroup* componentGroup, int componentType);
 ]]
+
+local ecs = ffi.load("ECSlua")
 
 local C = ffi.C
 
---print("Hello, world!")
+local systemNames = {}
+--TODO: use metamethods to disallow new writes to these tables that aren't done through the proper channels somehow
+Systems = {}
+Components = {}
+Worlds = {}
 
 local function copy(obj, copies)
     copies = copies or {}
@@ -34,171 +59,159 @@ local function copy(obj, copies)
     return res
 end
 
-local Class = {}
+local world_mt = {
+    __index = {
+        Systems = {},
 
-function Class:Derived(obj) 
-    obj = obj or {}
-    obj.super = self
-    setmetatable(obj, self)
-    self.__index = self
-    return obj
-end
-
-local Worlds = {}
-
-local function EntityFactory()
-    local factory = {
-        id = 0
-    }
-    
-    return {
-        new = function()
-            local private = {
-                id = factory.id+1
-            }
-            factory.id = private.id
-            return {
-                getId = function() return private.id end
-            }
+        id = function(self)
+            local world = ecs.world_id(self)
+            return world
+        end,
+        createEntity = function(self) 
+            local entity = ecs.createEntity(self) 
+            return entity
+        end,
+        removeEntity = function(self, entity)
+            ecs.removeEntity(self, entity)
+        end,
+        setComponent = function(self, entity, comp)
+            assert(type(comp) == "function", "setComponent(self, entity, comp) requires function argument")
+            local component = comp()
+            assert(type(component) == "table", "Component function must return a table value")
+            assert(type(component.type) == "number", "Component has no type number")
+            component = ecs.setComponent(self, entity, component.type)
+            assert(component ~= NULL, "Cannot set a component on an entity that hasn't been created or has been destroyed")
+            return component
+        end,
+        removeComponent = function(self, entity, comp)
+            ecs.removeComponent(self, entity, comp);
         end,
     }
+}
+
+ffi.metatype("World", world_mt)
+
+function getInvertedTable(table, target)
+    target = target or {}
+    for k,v in next, table, nil do
+        target[v] = k
+    end
+    
+    return target
 end
 
-local World = {
-    new = function(...) 
-        local private = {
-            components = {},
-            inactiveSystems = {},
-            activeSystems = {},
-            Entity = EntityFactory()
-        }
+local function setSystemNamesTable()
+    return getInvertedTable(Systems, systemNames)
+end
+
+local function World()
+
+    return {
+        createWorld = function(self, ...)
+
+            local world = ecs.createWorld()
+
+            args = { n = select("#", ...), ...}
         
-        local Entity = EntityFactory()
-        
-        local arg = {...}
-        
-        for i,v in ipairs(arg) do
-            assert(type(v) == "function", "CreateWorld must take functions as arguments")
-            table.insert(private.inactiveSystems, v())
+            for i=1,args.n do
+                local k = i
+                local v = args[i]
+                
+                assert(v ~= nil, "createWorld argument " .. k .. " is a nil value")
+                
+                --if this is the first time a world is being built, go ahead and call setSystemNamesTable
+                if(#systemNames == 0) then setSystemNamesTable() end
+                
+                local name = systemNames[v]
+                
+                local system = v()
+                system.embedded = ecs.createSystem(world, name)
+                ecs.registerSystem(world, system.embedded)
+                
+                local names = getInvertedTable(system, names)
+                
+                for k,v in next, system.ComponentGroups, nil do
+                    if names[v] then system[names[v]] = v.init(system, unpack(v.components)) end
+                end
+                
+                print("System name is", name)
+                world.Systems[name] = system
+            end
+
+            Worlds[world:id()+1] = world            
+            return world
+        end, --createWorld
+    }
+end
+
+World = World()
+
+local function System()
+    self = {
+        Derived = function (self, obj)
+            obj = obj or {}
+            obj.super = self
+            
+            setmetatable(obj, self)
+            self.__index = self
+            return obj
         end
-        
-        self = {
-            
-            getComponents = function() 
-                return copy(private.components)
-            end,
-            
-            getInactiveSystems = function() 
---                print(#private.inactiveSystems)
-                return copy(private.inactiveSystems)
-            end,
-            
-            getActiveSystems = function() 
-                return copy(private.activeSystems)
-            end,
-            
-            createEntity = function()
-                entity = private.Entity.new()
-                private.components[entity.getId()] = {1,2,3,4,5}
-                return entity
-            end,
-            
-            id = #Worlds+1
+    }
+    self.ComponentGroups = {}
+    self.embedded = nil
+    self.OnUpdate = function(self)
+    end
+    self.createComponentGroup = function(self, ...)
+        _self = {
+           init = function(self, ...)
+                print(self.embedded)
+                local componentGroup = ecs.createComponentGroup(self.embedded)
+                args = {n = select("#", ...), ...}
+                local component 
+                for i=1, args.n do
+                    component = args[i]()
+                    print(self.embedded, componentGroup, component.type)
+                    ecs.addComponentDependency(self.embedded, componentGroup, component.type) 
+                end
+                print(componentGroup)
+                return componentGroup
+            end, --returnFunction
+            components = {...}
         }
-        
-        table.insert(Worlds, self)
-        return Worlds[self.id]
+        table.insert(self.ComponentGroups, _self)
+        return _self
+    end
+
+    return self
+end
+
+System = System()
+
+Component = {
+    Derived = function(self, obj)
+        obj = obj or {}
+        self.type = #Components+1
+        setmetatable(obj, self)
+        self.__index = self
+        Components[self.type] = function() return obj end
+        return Components[self.type]
     end
 }
 
-function CreateWorld(...)
-    return World.new(...)
-end
+MyComponent = Component:Derived {
+    val = 1;   
+}
 
-function getWorlds()
-    return Worlds;
-end
-
-
-local function SystemFactory()
-    local factory = {
-        dependencies = {true}
-    }
-
-    return Class:Derived{
-        
-        getDependencies = function() 
-            return copy(factory.dependencies)    
-        end,
-    
-        OnUpdate = function(self)
-          print "You forgot to assign OnUpdate"
-        end,
-    
-        ComponentGroup = function(self, ...)
-            local arg = {...}
-            local private = {
-                entities = {},
-                components = {},
-                dependencies = {}
-            }
-            
-            for i,v in ipairs(arg) do
-                assert(type(v) == "function", "ComponentGroup must take functions as arguments")
-                table.insert(factory.dependencies, v)    
-            end
-            
-            return {
-                getDependencies = function() return copy(private.dependencies) end,
-            }
-        end
-    }
-
-end
-
-local System = SystemFactory()
-
-local Component = Class:Derived{}
-
-local world = CreateWorld(MeshSystem, RenderSystem)
-
-function MeshComponent()
-    return Component:Derived {
-        value = 0
-    }
-end
-
-function MeshSystem()
+function Systems.MySystem()
     self = System:Derived {
+        group = self:createComponentGroup(MyComponent),
         OnUpdate = function(self)
---            print "hheyyy"    
-        end
-    }
---    print(#self.getDependencies())
-    return self
-end
-
-function RenderSystem()
-    self = System:Derived {
-        componentGroup = self:ComponentGroup(MeshComponent),
-        OnUpdate = function(self)
---            self.super.OnUpdate()
+            print "yolo"
         end
     }
     return self
 end
 
-local x = os.clock()
-for i=1, 10000 do 
-    local entity = world.createEntity()
---    for k,v in next, world.getComponents()[entity.getId()], nil do
-----        print(k,v)
---    end
-    local world2 = CreateWorld(MeshSystem, RenderSystem)
-    local entity2 = world2.createEntity()
---    print(entity.getId(), entity2.getId())
-end
---print(#Worlds)
-print("elapsed time:", os.clock()-x)
-
-
+local world = World:createWorld(Systems.MySystem)
+local entity = world:createEntity();
+local component = world:setComponent(entity, MyComponent)

@@ -6,16 +6,72 @@ using namespace ECS;
 System::System(World& w) : world(w) {}
 
 void System::notifyComponentChange() {
+    std::cout << "num views " << views.size() << std::endl;
     for(auto view : views){
         view->updateComponents();
     }
 }
 
+void System::ComponentGroup::updateComponents(){
+            
+    std::cout << "updateComponents" << std::endl;
+    std::cout << this->components.size() << std::endl;
+
+    entities.clear();
+    components.clear();
+
+    auto allComponents = parent.world.getComponents();
+    //                auto allComponents = parent.world.components;
+    auto tempDependencies = localDependencies;
+
+    std::set<Component*> tempComponents = std::set<Component*>();
+
+    auto it = allComponents.begin();
+
+    auto range = allComponents.equal_range(it->first);
+
+    //the reason we don't do a nested loop here is because my tests showed it was slightly faster to do it as a single loop, and performance is critical for this function as it will run whenever components are added or removed
+    while(it != allComponents.end()){
+
+        auto dIt = tempDependencies.find(it->second->getType());
+        if(dIt != tempDependencies.end()){
+            tempComponents.insert(it->second);
+            tempDependencies.erase(dIt);
+        }
+
+        if(tempDependencies.size() == 0){
+
+            for(auto cIt = tempComponents.begin(); cIt != tempComponents.end(); ++cIt){
+                components.emplace((*cIt)->getType(), *cIt);
+            }
+            entities.insert(it->first);
+            tempComponents.clear();
+            tempDependencies = localDependencies;
+            it = range.second;
+            if(it == allComponents.end()){
+                break;
+            }
+            range = allComponents.equal_range(it->first);
+            continue;
+        }
+
+        it++;
+
+        if(range.second != allComponents.end() && it == range.second){
+            tempDependencies = localDependencies;
+            tempComponents.clear();
+            range = allComponents.equal_range(it->first);
+        }
+    }
+    }
+
 void System::Update(){
     //do updates before OnUpdate in case any entities or components have been added or removed
     BeforeUpdate();
+
     //virtual call for the derived class, which can be user-defined
     OnUpdate();
+
     //so we can run update stuff without having to have the user define it, this might be useful for something like a command buffer, idk
     AfterUpdate();
 }
@@ -25,6 +81,7 @@ void System::OnUpdate(){}
 void System::BeforeUpdate() {
     //gonna add some logic to actually ensure that only relevant componentGroups are acted on later
     notifyComponentChange();
+
 }
 
 void System::AfterUpdate() {}
@@ -49,9 +106,9 @@ World::World() {
     _entityId = 0;
     _id = _staticId;
     _staticId+=1;
-    entities = std::vector<Entity>();
+    entities = std::unordered_set<Entity>();
     components = std::unordered_multimap<Entity, Component*>();
-//    std::cout << "Components initialized " << components.size() << std::endl;
+    std::cout << "Components initialized " << components.size() << std::endl;
     //systems are allocated in dynamic memory and will be deleted on destroyWorld
     activeSystems = std::vector<System*>();
     inactiveSystems = std::vector<System*>();
@@ -88,21 +145,25 @@ void World::destroyWorld(World *world) {
 
 
 
-Entity World::createEntity(){
+const Entity& World::createEntity() {
     Entity entity = Entity();
     entity._id = _entityId;
-    entities.push_back(entity);
+    entities.insert(entity);
     _entityId+=1;
     
-//    std::cout << "Created entity " << entity.id() << " in world " << this->id() << std::endl; 
+    std::cout << "Created entity " << entity.id() << " in world " << this->id() << std::endl; 
     
-    return entities.back();
+    return *entities.find(entity);
 }
 
 
 
-Component* World::setComponent(Entity entity, Component* component) {
+Component* World::setComponent(const Entity entity, Component* component) {
 
+    if(entities.find(entity) == entities.end()){
+        return nullptr;
+    }
+    
     auto its = components.equal_range(entity);
     if(its.first != its.second){
         for(auto it = its.first; it != its.second; ++it){
@@ -121,10 +182,37 @@ Component* World::setComponent(Entity entity, Component* component) {
     return component;
 }
 
+bool World::removeComponentHelper(const Entity entity, const size_t typeCode) {
+    auto its = components.equal_range(entity);
+    if(its.first != its.second){
+        auto it = its.first;
+        while(it != its.second){
+            if(it->second->getType() == typeCode){
+                delete it->second;
+                it = components.erase(it);
+                std::cout << "Removed component " << typeCode << " for entity " << entity.id() << " from world " << this->id() <<  std::endl;
+                queryActiveSystems();
+                return true;
+            }else{
+                it++;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool World::removeComponent(const Entity entity, Component* component) {
+    return removeComponentHelper(entity, component->getType());
+}
+
 void World::updateActive(std::vector<World*>worlds){
     for(World* world : worlds){
+
         for(auto system : world->activeSystems){
+
             system->Update();
+
         }
     }
 }
@@ -171,7 +259,9 @@ void World::queryInactiveSystems(){
         }
 
         if(active){
-            
+//            return;
+//            std::cout << *it << " " << activeSystems.back() << std::endl;
+
             std::cout << "Adding system of type " << (*it)->getType() << " to active systems in world " << (*it)->world.id() << std::endl;
             
             (*it)->OnActive();
@@ -237,7 +327,7 @@ void World::queryActiveSystems(){
     }
 }
 
-bool World::removeEntity(Entity entity){
+void World::removeEntity(const Entity entity){
     auto its = components.equal_range(entity);
     if(its.first != its.second){
         auto it = its.first;
@@ -245,11 +335,13 @@ bool World::removeEntity(Entity entity){
             delete it->second;
             it = components.erase(it);
         }
-        std::cout << "Removed entity " << entity.id() << " from world " << this->id() << std::endl;
         queryActiveSystems();
-        return true;
     }
-    return false;
+    auto it = entities.find(entity);
+    if(it != entities.end()) {
+        entities.erase(it);
+        std::cout << "Removed entity " << entity.id() << " from world " << this->id() << std::endl;
+    }
 }
 
 //System* World::registerSystem(System* system){

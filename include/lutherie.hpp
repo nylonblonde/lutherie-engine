@@ -15,7 +15,7 @@
 //#include <glm/vec4.hpp>
 //#include <glm/mat4x4.hpp>
 
-#include <Lutherie/ECS.hpp>
+#include <ECSlua.hpp>
 #include "fs.h"
 
 const int WIDTH = 800;
@@ -43,8 +43,11 @@ public:
         return true;
     }
     
-    lua_State* state;
 
+//    lua_State* getState() const {
+//        return state;
+//    }
+    
     static Lutherie& Instance();
     
     Lutherie(Lutherie const&) = delete;
@@ -59,12 +62,15 @@ private:
     const char* scriptsDir;
     const char* resourcesDir;
     const char* libDir;
+    
+    ECSLua ecs = ECSLua(luaL_newstate());
 
-    void printLuaError();
-    void executeLua(const char* filename);
-    void UpdateActiveSystems();
+//    void printLuaError();
+//    void executeLua(const char* filename);
+//    void UpdateActiveSystems();
 //    void luaRegisterSystems(lua_State* state, void* world);
     
+//    lua_State* state;
     
     GLFWwindow* window;
     bool frameBufferResized = false;

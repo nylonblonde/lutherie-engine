@@ -73,16 +73,17 @@ int main(int carg, char* args[]){
                     strcat(libPath, libDir);
                     
                     //TODO: copy default libraries to project's library directory. Change addSubdirectory to return int so we can detect if directory was created or existed
-                    
-                    auto start = std::chrono::high_resolution_clock::now();
-                    for(int i = 0; i < 10000; i++){
-                    World& world = World::createWorld<MySystem>();
-                    Entity entity = world.createEntity();
-//                    world.setComponent(entity, new MyComponent());
-                    }
-                    auto end = std::chrono::high_resolution_clock::now();
-                    double duration = std::chrono::duration_cast<std::chrono::duration<double>>(end-start).count();
-                    std::cout << "C++ elapsed: " << duration << std::endl;
+
+//                     World& world = World::createWorld<MySystem>();
+
+//                    auto start = std::chrono::high_resolution_clock::now();
+//                    for(int i = 0; i < 10000; i++){
+//                        Entity entity = world.createEntity();
+//                        world.setComponent(entity, new MyComponent());
+//                    }
+//                    auto end = std::chrono::high_resolution_clock::now();
+//                    double duration = std::chrono::duration_cast<std::chrono::duration<double>>(end-start).count();
+//                    std::cout << "C++ elapsed: " << duration << std::endl;
                     Lutherie lutherie = Lutherie(path, scriptsPath, resPath, libPath);
                 }
             }

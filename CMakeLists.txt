@@ -10,14 +10,14 @@ set(GLFW_INCLUDE_DIR /usr/local/include CACHE PATH "")
 set(VULKAN_LIB_DIR $ENV{HOME}/vulkansdk-macos-1.1.92.1/macOS/lib CACHE PATH "")
 set(VULKAN_INCLUDE_DIR $ENV{HOME}/vulkansdk-macos-1.1.92.1/macOS/include CACHE PATH "")
 
-set(LINK_LIBS glfw vulkan luajit ECS)
+set(LINK_LIBS glfw vulkan luajit ECSlua ECS)
 set(SOURCES src/lutherie.cpp src/main.cpp)
 
 add_executable(Lutherie ${SOURCES})
 
-target_link_directories(Lutherie PUBLIC ECS/build ${LUA_LIB_DIR} ${GLFW_LIB_DIR} ${VULKAN_LIB_DIR})
+target_link_directories(Lutherie PUBLIC ECS/build ECSlua/build ${LUA_LIB_DIR} ${GLFW_LIB_DIR} ${VULKAN_LIB_DIR})
 
-target_include_directories(Lutherie PUBLIC ECS/include include ${LUA_INCLUDE_DIR} ${GLFW_INCLUDE_DIR} ${VULKAN_INCLUDE_DIR})
+target_include_directories(Lutherie PUBLIC ECS/include ECSlua/include include ${LUA_INCLUDE_DIR} ${GLFW_INCLUDE_DIR} ${VULKAN_INCLUDE_DIR})
 
 set_target_properties(Lutherie PROPERTIES 
 	CXX_STANDARD 17
