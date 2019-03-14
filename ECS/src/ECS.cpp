@@ -38,6 +38,7 @@ void System::ComponentGroup::updateHelper(std::unordered_multimap<Entity, Compon
             for(auto cIt = tempComponents.begin(); cIt != tempComponents.end(); ++cIt){
                 components.emplace((*cIt)->getType(), *cIt);
             }
+            
             entities.insert(it->first);
             tempComponents.clear();
             tempDependencies = localDependencies;
@@ -212,12 +213,8 @@ bool World::removeComponent(const Entity entity, Component* component) {
 
 void World::updateActive(std::vector<World*>worlds){
     for(World* world : worlds){
-
         for(auto system : world->activeSystems){
-
-            std::cout << "activeSystems size " << world->activeSystems.size() << std::endl;
             system->Update();
-
         }
     }
 }

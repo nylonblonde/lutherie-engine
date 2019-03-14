@@ -111,7 +111,13 @@ namespace ECS {
 
         static void destroyWorld(World* worldPtr);
         std::unordered_multimap<Entity, Component*> getComponents() const { return components; }
-//        Entity getEntity(Entity entity) const { return *entities.find(entity); }
+        const Entity& getEntity(Entity entity) const { 
+            auto it = entities.find(entity);
+            if(it == entities.end()){
+                std::cout << "shit" << std::endl;
+            }
+            return *it; 
+        }
         
         void queryActiveSystems();
         void queryInactiveSystems();
@@ -169,7 +175,6 @@ namespace ECS {
         private:
             
             void componentGroupHelper(size_t typeCode){
-                std::cout << "emplacing " << typeCode << std::endl;
 
                 parent.dependencies.emplace(typeCode);
                 localDependencies.emplace(typeCode);
@@ -181,7 +186,6 @@ namespace ECS {
         public:
 
             System& getParent () const {
-                std::cout << "getting parent" << std::endl;
                 return parent;
             }
             
@@ -205,6 +209,14 @@ namespace ECS {
             
             void updateComponents();
             
+            Component* getComponent (size_t typeCode, size_t index) const {
+                auto range = components.equal_range(typeCode);
+                auto it = range.first;
+                std::advance(it, index);
+
+                return (it->second);
+            }
+            
             template<typename T>
             T& getComponent (size_t index) const {
                 auto range = components.equal_range(typeid(T).hash_code());
@@ -212,14 +224,15 @@ namespace ECS {
                 std::advance(it, index);
 
                 return *dynamic_cast<T*>(it->second);
-
             }
             
-            Entity getEntity (size_t index) const {
+            const Entity* getEntity (size_t index) const {
                 auto it = entities.begin();
                 std::advance(it, index);
                 
-                return *it;
+                std::cout << &parent.world.getEntity(*it) << std::endl;
+                
+                return &parent.world.getEntity(*it);
             }
             
         }; //ComponentGroup

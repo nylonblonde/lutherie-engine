@@ -31,11 +31,16 @@ public:
 class LuaComponent : public Component {
 private:
     const size_t type;
+    void* data = nullptr;
 public:
     LuaComponent(size_t componentType);
     size_t getType() const {
         return type;
     }
+    void* getData() const {
+        return data;
+    }
+    void setDataPtr(void* ptr);
 };
 
 class LuaSystem : public System {
@@ -87,6 +92,8 @@ public:
     
     void addDependency(void* cg, size_t componentType);
     int getGroupSize(System::ComponentGroup* cg);
+    const Entity* getEntity(System::ComponentGroup* cg, int index);
+    Component* getComponent(System::ComponentGroup* cg, size_t typeCode, int index);
     
     virtual void OnUpdate();
     virtual void OnActive();

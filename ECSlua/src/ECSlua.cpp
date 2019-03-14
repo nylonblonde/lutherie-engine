@@ -133,12 +133,26 @@ void LuaWorld::RegisterSystem(System* system) {
     inactiveSystems.emplace(inactiveSystems.end(), system);
 }
 
+void LuaComponent::setDataPtr(void* ptr){
+    if(data == nullptr){
+        data = ptr;
+    }
+}
+
 System::ComponentGroup* LuaSystem::voidPtrToGroup(void* ptr) {
     return (System::ComponentGroup*)ptr;
 }
 
 int LuaSystem::getGroupSize(System::ComponentGroup* cg) {
     return cg->size();
+}
+
+const Entity* LuaSystem::getEntity(System::ComponentGroup* cg, int index){
+    return cg->getEntity(index);
+}
+
+Component* LuaSystem::getComponent(System::ComponentGroup* cg, size_t typeCode, int index){
+    return cg->getComponent(typeCode, index);
 }
 
 LuaComponent::LuaComponent(size_t componentType) : type(componentType){}
@@ -176,6 +190,14 @@ extern "C" {
         world->removeEntity(*entity);
     }
     
+    void component_setDataPtr(LuaComponent* component, void* ptr){
+        component->setDataPtr(ptr);
+    }
+    
+    void* component_getData(LuaComponent* component) {
+        return component->getData();
+    }
+    
     void* setComponent(LuaWorld* world, Entity* entity, int componentType){
         return world->setComponent(*entity, new LuaComponent(componentType));
     }
@@ -187,4 +209,13 @@ extern "C" {
     int group_size(LuaSystem* system, void* groupPtr) {
         return system->getGroupSize(LuaSystem::voidPtrToGroup(groupPtr));
     }
+    
+    const Entity* group_getEntity(LuaSystem* system, void* groupPtr, int index){
+        return system->getEntity(LuaSystem::voidPtrToGroup(groupPtr), index);
+    }
+    
+    Component* group_getComponent(LuaSystem* system, void* groupPtr, size_t typeCode, int index){
+        return system->getComponent(LuaSystem::voidPtrToGroup(groupPtr), typeCode, index);
+    }
 }
+

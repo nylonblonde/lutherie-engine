@@ -2,7 +2,9 @@ local ffi = require("ffi")
 
 ffi.cdef[[
 	typedef struct World World;
-    typedef struct System System;
+    typedef struct System {
+        World* world;
+    } System;
     typedef struct ComponentGroup {
         System* parent;
     } ComponentGroup;
@@ -18,12 +20,17 @@ ffi.cdef[[
     Entity* createEntity(World* world);
     void removeEntity(World* world, Entity* entity);
 
+    void* component_getData(Component* component);
+    void component_setDataPtr(Component* component, void* ptr);
+
     Component* setComponent(World* world, Entity* entity, int componentType);
     void removeComponent(World* world, Entity* entity, Component* component);
 
     ComponentGroup* createComponentGroup(System* system);
     void addComponentDependency(System* system, ComponentGroup* componentGroup, int componentType);
     int group_size(System* parent, ComponentGroup* componentGroup);
+    Entity* group_getEntity(System* parent, ComponentGroup* componentGroup, int index);
+    Component* group_getComponent(System* parent, ComponentGroup* componentGroup, size_t typeCode, int index);
     
 ]]
 
@@ -32,6 +39,7 @@ local ecs = ffi.load("ECSlua")
 local C = ffi.C
 
 local systemNames = {}
+local componentNames = {}
 --TODO: use metamethods to disallow new writes to these tables that aren't done through the proper channels somehow
 Systems = {}
 Components = {}
@@ -66,7 +74,7 @@ end
 local world_mt = {
     __index = {
         Systems = {},
-
+        Components = {},
         id = function(self)
             return ecs.world_id(self)
         end,
@@ -82,9 +90,13 @@ local world_mt = {
             local component = comp()
             assert(type(component) == "table", "Component function must return a table value")
             assert(type(component.type) == "number", "Component has no type number")
-            component = ecs.setComponent(self, entity, component.type)
+            data = component:new()
+            component.embedded = ecs.setComponent(self, entity, component.type)
+            ecs.component_setDataPtr(component.embedded, data)
             assert(component ~= NULL, "Cannot set a component on an entity that hasn't been created or has been destroyed")
-            return component
+            data.embedded = component.embedded
+--            print(data.embedded)
+            return data
         end,
         removeComponent = function(self, entity, comp)
             ecs.removeComponent(self, entity, comp);
@@ -93,16 +105,39 @@ local world_mt = {
 }
 
 local group_mt = {
-    parent = nil,
     __index = {
         size = function(self)
             return ecs.group_size(self.parent, self)
+        end,
+        getComponentArray = function(self, component)
+            local array = {}
+            local size = self:size()
+            local component = component()
+            local typeCode = component.type
+            for i=1, size do
+                
+--                entity = ecs.group_getEntity(self.parent, self, i-1)
+--                print(entity, typeCode, self.parent.world)
+
+--                assert(self.parent.world.Components[entity])
+                array[i] = ecs.group_getComponent(self.parent, self, typeCode, i-1):getData()
+            end
+            return array
+        end,
+    }
+}
+
+local component_mt = {
+    __index = {
+        getData = function(self)
+            return ecs.component_getData(self)
         end
     }
 }
 
 ffi.metatype("World", world_mt)
 ffi.metatype("ComponentGroup", group_mt)
+ffi.metatype("Component", component_mt)
 
 function getInvertedTable(table, target)
     target = target or {}
@@ -111,10 +146,6 @@ function getInvertedTable(table, target)
     end
     
     return target
-end
-
-local function setSystemNamesTable()
-    return getInvertedTable(Systems, systemNames)
 end
 
 function World()
@@ -133,7 +164,7 @@ function World()
                 assert(v ~= nil, "createWorld argument " .. k .. " is a nil value")
                 
                 --if this is the first time a world is being built, go ahead and call setSystemNamesTable
-                if(#systemNames == 0) then setSystemNamesTable() end
+                if(#systemNames == 0) then getInvertedTable(Systems, systemNames) end
                 
                 local name = systemNames[v]
                 
@@ -203,7 +234,30 @@ Component = {
         self.type = #Components+1
         setmetatable(obj, self)
         self.__index = self
-        Components[self.type] = function() return obj end
+        Components[self.type] = function() 
+            local typedef = "typedef struct Component"..self.type.." { "
+            local newObj = {}
+
+            typedef = typedef.."void* embedded; "
+            for k,v in next, obj, nil do
+                if type(k)=="string" and type(v)=="number" then
+                    typedef = typedef.."int "..k.."; "
+                    newObj[k] = v
+                elseif type(k)=="string" and type(v)=="string" then
+                    typedef = typedef.."char[] "..k.."; "
+                    newObj[k] = v
+                end
+            end
+--            obj = newObj
+            obj.new = function(obj)
+                typedef = typedef.."} Component"..self.type..";"
+                print(typedef)
+                ffi.cdef (typedef)
+                obj.data = ffi.new("struct Component"..self.type, newObj)
+                return obj.data
+            end
+            return obj
+        end
         return Components[self.type]
     end
 }
