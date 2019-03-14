@@ -215,6 +215,7 @@ void World::updateActive(std::vector<World*>worlds){
 
         for(auto system : world->activeSystems){
 
+            std::cout << "activeSystems size " << world->activeSystems.size() << std::endl;
             system->Update();
 
         }
@@ -263,9 +264,6 @@ void World::queryInactiveSystems(){
         }
 
         if(active){
-//            return;
-//            std::cout << *it << " " << activeSystems.back() << std::endl;
-
             std::cout << "Adding system of type " << (*it)->getType() << " to active systems in world " << (*it)->world.id() << std::endl;
             
             (*it)->OnActive();
@@ -280,43 +278,43 @@ void World::queryInactiveSystems(){
 }
 
 void World::queryActiveSystems(){
-    
-    if(components.size() == 0){
-        return;
-    }
-    
+
     auto it = activeSystems.begin();
     while(it != activeSystems.end()){
-        
-        std::unordered_set<size_t> dependencies = (*it)->getDependencies();
-        
-        std::unordered_set<size_t> tempDependencies = dependencies;
-        
-        bool active = true;
-        
-        Entity currEntity = components.begin()->first;
-        
-        auto cIt = components.begin();
-        while(cIt != components.end()){
 
-            auto dIt = tempDependencies.find(cIt->second->getType());
-            if(dIt != tempDependencies.end()){
-                tempDependencies.erase(dIt);
+        std::unordered_set<size_t> dependencies = (*it)->getDependencies();
+
+        std::unordered_set<size_t> tempDependencies = dependencies;
+
+        bool active = true;
+        auto cIt = components.begin();
+        
+        if(cIt == components.end()) {
+            active = false;
+        }else{
+            Entity currEntity = components.begin()->first;    
+        
+            while(cIt != components.end()){
+
+                auto dIt = tempDependencies.find(cIt->second->getType());
+                if(dIt != tempDependencies.end()){
+                    tempDependencies.erase(dIt);
+                }
+
+                if(tempDependencies.size() > 0){
+                    active = false;
+                    break;
+                }
+
+                cIt++;
+
+                if(cIt != components.end() && currEntity != cIt->first){
+
+                    tempDependencies = dependencies;
+                    currEntity = cIt->first;
+                }
+
             }
-            
-            if(tempDependencies.size() > 0){
-                active = false;
-                break;
-            }
-            
-            cIt++;
-            
-            if(cIt != components.end() && currEntity != cIt->first){
-                
-                tempDependencies = dependencies;
-                currEntity = cIt->first;
-            }
-            
         }
         
         if(!active){
