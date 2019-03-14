@@ -23,11 +23,21 @@ lua_State* ECSLua::getState(){
 }
 
 void ECSLua::executeLua(const char* filepath){
+    
+    lua_getglobal(mainState, "package");
+    lua_getfield(mainState, -1, "path");
+    luaL_Buffer b;
+    luaL_buffinit(mainState, &b);
+    luaL_addvalue(&b);
+    luaL_addstring(&b,";./libs/lua/?.raw;;");
+    luaL_pushresult(&b);
+    lua_setfield(mainState, -2, "path");
+    lua_pop(mainState, 1);
+    
     int result = luaL_dofile(mainState, filepath);
 
     if(result != 0) {
         printLuaError(mainState);
-        std::cout << "here" << std::endl;
         return;
     }
 }
@@ -104,23 +114,21 @@ void LuaSystem::OnUpdate(){
 
 void LuaSystem::notifyComponentChange() {
     for(LuaSystem::ComponentGroup* view : views){
-        std::cout << view << std::endl;
         view->updateComponents();
     }
 }
 
-//void LuaSystem::ComponentGroup::updateComponents(){
-//    std::cout << "WHY AH" << std::endl;
-//}
-
 void LuaWorld::RegisterSystem(System* system) {
     inactiveSystems.emplace(inactiveSystems.end(), system);
-    std::cout << "there are " << inactiveSystems.size() << " systems in inactive systems now" << std::endl;
 }
 
 LuaSystem::ComponentGroup* LuaSystem::voidPtrToGroup(void* ptr) {
-        return (ComponentGroup*)ptr;
-    }
+    return (ComponentGroup*)ptr;
+}
+
+int LuaSystem::getGroupSize(ComponentGroup* cg) {
+    return cg->size();
+}
 
 LuaComponent::LuaComponent(size_t componentType) : type(componentType){}
 
@@ -163,5 +171,9 @@ extern "C" {
     
     void removeComponent(LuaWorld* world, Entity* entity, LuaComponent* component){
         world->removeComponent(*entity, component);
+    }
+    
+    int group_size(LuaSystem* system, void* groupPtr) {
+        return system->getGroupSize(LuaSystem::voidPtrToGroup(groupPtr));
     }
 }

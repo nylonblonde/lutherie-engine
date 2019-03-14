@@ -184,7 +184,6 @@ namespace ECS {
             template<typename... Ts>
             static ComponentGroup createComponentGroup(System& s){
                 ComponentGroup retVal = ComponentGroup(s);
-                std::cout << "what's happening " << retVal.entities.size() << std::endl;
                 [](...){}((retVal.componentGroupHelper<Ts>(),0)...);
                 return retVal;
                 

@@ -3,7 +3,9 @@ local ffi = require("ffi")
 ffi.cdef[[
 	typedef struct World World;
     typedef struct System System;
-    typedef struct ComponentGroup ComponentGroup;
+    typedef struct ComponentGroup {
+        System* parent;
+    } ComponentGroup;
     typedef struct Component Component;
     typedef struct Entity Entity;
 
@@ -21,6 +23,8 @@ ffi.cdef[[
 
     ComponentGroup* createComponentGroup(System* system);
     void addComponentDependency(System* system, ComponentGroup* componentGroup, int componentType);
+    int group_size(System* parent, ComponentGroup* componentGroup);
+    
 ]]
 
 local ecs = ffi.load("ECSlua")
@@ -64,8 +68,7 @@ local world_mt = {
         Systems = {},
 
         id = function(self)
-            local world = ecs.world_id(self)
-            return world
+            return ecs.world_id(self)
         end,
         createEntity = function(self) 
             local entity = ecs.createEntity(self) 
@@ -89,7 +92,17 @@ local world_mt = {
     }
 }
 
+local group_mt = {
+    parent = nil,
+    __index = {
+        size = function(self)
+            return ecs.group_size(self.parent, self)
+        end
+    }
+}
+
 ffi.metatype("World", world_mt)
+ffi.metatype("ComponentGroup", group_mt)
 
 function getInvertedTable(table, target)
     target = target or {}
@@ -104,7 +117,7 @@ local function setSystemNamesTable()
     return getInvertedTable(Systems, systemNames)
 end
 
-local function World()
+function World()
 
     return {
         createWorld = function(self, ...)
@@ -134,7 +147,6 @@ local function World()
                     if names[v] then system[names[v]] = v.init(system, unpack(v.components)) end
                 end
                 
-                print("System name is", name)
                 world.Systems[name] = system
             end
 
@@ -146,7 +158,7 @@ end
 
 World = World()
 
-local function System()
+function System()
     self = {
         Derived = function (self, obj)
             obj = obj or {}
@@ -164,16 +176,14 @@ local function System()
     self.createComponentGroup = function(self, ...)
         _self = {
            init = function(self, ...)
-                print(self.embedded)
                 local componentGroup = ecs.createComponentGroup(self.embedded)
                 args = {n = select("#", ...), ...}
                 local component 
                 for i=1, args.n do
                     component = args[i]()
-                    print(self.embedded, componentGroup, component.type)
                     ecs.addComponentDependency(self.embedded, componentGroup, component.type) 
                 end
-                print(componentGroup)
+                componentGroup.parent = self.embedded
                 return componentGroup
             end, --returnFunction
             components = {...}
@@ -198,20 +208,3 @@ Component = {
     end
 }
 
-MyComponent = Component:Derived {
-    val = 1;   
-}
-
-function Systems.MySystem()
-    self = System:Derived {
-        group = self:createComponentGroup(MyComponent),
-        OnUpdate = function(self)
-            print "yolo"
-        end
-    }
-    return self
-end
-
-local world = World:createWorld(Systems.MySystem)
-local entity = world:createEntity();
-local component = world:setComponent(entity, MyComponent)

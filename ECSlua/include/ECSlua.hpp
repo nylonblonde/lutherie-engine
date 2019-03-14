@@ -57,8 +57,9 @@ protected:
             dynamic_cast<LuaSystem&>(parent).dependencies.insert(componentType);
             localDependencies.insert(componentType);
             addDependencies(args...);
-            std::cout << "dependencies " << dynamic_cast<LuaSystem&>(parent).dependencies.size() << std::endl;
         }
+        
+        void getComponent(size_t componentType);
         
     };
 public:
@@ -78,6 +79,7 @@ public:
     static ComponentGroup* voidPtrToGroup(void* ptr);
     
     void addDependency(ComponentGroup* cg, size_t componentType);
+    int getGroupSize(ComponentGroup* cg);
     
     virtual void OnUpdate();
     virtual void OnActive();

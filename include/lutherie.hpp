@@ -43,11 +43,6 @@ public:
         return true;
     }
     
-
-//    lua_State* getState() const {
-//        return state;
-//    }
-    
     static Lutherie& Instance();
     
     Lutherie(Lutherie const&) = delete;
@@ -64,13 +59,6 @@ private:
     const char* libDir;
     
     ECSLua ecs = ECSLua(luaL_newstate());
-
-//    void printLuaError();
-//    void executeLua(const char* filename);
-//    void UpdateActiveSystems();
-//    void luaRegisterSystems(lua_State* state, void* world);
-    
-//    lua_State* state;
     
     GLFWwindow* window;
     bool frameBufferResized = false;
