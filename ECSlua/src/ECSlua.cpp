@@ -55,23 +55,28 @@ ECSLua& ECSLua::Instance(){
     return *instance;
 }
 
+
+
 LuaSystem::LuaSystem(World& w, const char* n) : System(w), name(n){
 //    Lutherie::Instance()::getState();
     std::cout << name << std::endl;
 }
 
-LuaSystem::~LuaSystem(){}
-
-void LuaSystem::addDependency(ComponentGroup* cg, size_t componentType){
-    cg->addDependencies(componentType);
+LuaSystem::~LuaSystem(){
+    for(auto view : views){
+        delete view;
+    }
 }
 
+void LuaSystem::addDependency(void* cg, size_t componentType){
 
+    LuaSystem::ComponentGroup* lg = static_cast<LuaSystem::ComponentGroup*>(cg);
 
-//LuaSystem::ComponentGroup& LuaSystem::createComponentGroup(){
-//    using cg = LuaSystem::ComponentGroup;
-//    componentGroups.emplace(componentGroups.end(), cg::createComponentGroup(dynamic_cast<System&>(*this)));
-//}
+//    std::cout << &lg->getParent() << std::endl;
+
+    lg->addDependencies(componentType);
+
+}
 
 void LuaSystem::OnActive(){}
 
@@ -113,20 +118,26 @@ void LuaSystem::OnUpdate(){
 }
 
 void LuaSystem::notifyComponentChange() {
-    for(LuaSystem::ComponentGroup* view : views){
+
+    for(auto view : views){
         view->updateComponents();
     }
+}
+
+void LuaSystem::ComponentGroup::updateComponents(){
+        
+    System::ComponentGroup::updateHelper(static_cast<LuaSystem&>(parent).world.getComponents(), localDependencies);
 }
 
 void LuaWorld::RegisterSystem(System* system) {
     inactiveSystems.emplace(inactiveSystems.end(), system);
 }
 
-LuaSystem::ComponentGroup* LuaSystem::voidPtrToGroup(void* ptr) {
-    return (ComponentGroup*)ptr;
+System::ComponentGroup* LuaSystem::voidPtrToGroup(void* ptr) {
+    return (System::ComponentGroup*)ptr;
 }
 
-int LuaSystem::getGroupSize(ComponentGroup* cg) {
+int LuaSystem::getGroupSize(System::ComponentGroup* cg) {
     return cg->size();
 }
 
@@ -154,7 +165,7 @@ extern "C" {
     }
     
     void addComponentDependency(LuaSystem* system, void* groupPtr, int componentType) {
-        system->addDependency(LuaSystem::voidPtrToGroup(groupPtr), componentType);
+        system->addDependency(groupPtr, componentType);
     }
     
     const Entity* createEntity(World* world) {

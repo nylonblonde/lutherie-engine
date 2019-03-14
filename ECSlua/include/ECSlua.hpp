@@ -3,6 +3,8 @@
 
 #include <luajit-2.0/lua.hpp>
 #include <ECS.hpp>
+#include <list>
+
 using namespace ECS;
 
 void printLuaError(lua_State* state);
@@ -37,53 +39,58 @@ public:
 };
 
 class LuaSystem : public System {
-protected:
-    class ComponentGroup;
+
 private:
     const char* name;
-    std::vector<ComponentGroup> componentGroups = {};
-    std::vector<ComponentGroup*> views;
+    std::list<ComponentGroup> componentGroups = {};
 protected:
     class ComponentGroup : public System::ComponentGroup {
     public:         
-        ComponentGroup(const System::ComponentGroup& base) : System::ComponentGroup(base) {}
-//        virtual void updateComponents();
-    public:
+        ComponentGroup(const System::ComponentGroup& base) : System::ComponentGroup(base) {
+            static_cast<LuaSystem&>(parent).views.push_back(this);
+        }
+        void updateComponents();
+//    public:
         void addDependencies(){}
-
+//
         template<typename... Ts>
-        //get table id from lua to treat as the componentType
         void addDependencies(size_t componentType, Ts... args){
-            dynamic_cast<LuaSystem&>(parent).dependencies.insert(componentType);
+            std::cout << &parent << std::endl;
+            static_cast<LuaSystem&>(parent).dependencies.insert(componentType);
+
             localDependencies.insert(componentType);
+//            std::cout << localDependencies.size() << std::endl;
+            
             addDependencies(args...);
         }
-        
-        void getComponent(size_t componentType);
-        
+//        
+//        void getComponent(size_t componentType);
+//        
     };
+protected:
+    std::vector<ComponentGroup*> views;
+
 public:
     LuaSystem(World& w, const char* name);
     ~LuaSystem();
     
     template <typename... Ts>
-    ComponentGroup& createComponentGroup(Ts... args){
-//        componentGroups.emplace(componentGroups.end(), ComponentGroup::createComponentGroup(*this));
-        ComponentGroup cg = ComponentGroup::createComponentGroup(*this);
-
-        cg.addDependencies(args...);
-        componentGroups.push_back(cg);
-        return *&componentGroups.back();
+    System::ComponentGroup& createComponentGroup(Ts... args){
+//        std::cout << "run once" << std::endl;
+        System::ComponentGroup* cg = new ComponentGroup(ComponentGroup::createComponentGroup(*this));        
+//        componentGroups.push_back(cg);
+        return *cg;
+//        return *&componentGroups.back();
     }
     
-    static ComponentGroup* voidPtrToGroup(void* ptr);
+    static System::ComponentGroup* voidPtrToGroup(void* ptr);
     
-    void addDependency(ComponentGroup* cg, size_t componentType);
-    int getGroupSize(ComponentGroup* cg);
+    void addDependency(void* cg, size_t componentType);
+    int getGroupSize(System::ComponentGroup* cg);
     
     virtual void OnUpdate();
     virtual void OnActive();
-    virtual void notifyComponentChange();
+    void notifyComponentChange();
 };
 
 class LuaWorld;

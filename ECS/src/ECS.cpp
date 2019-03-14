@@ -6,24 +6,18 @@ using namespace ECS;
 System::System(World& w) : world(w) {}
 
 void System::notifyComponentChange() {
-    std::cout << "num views " << views.size() << std::endl;
+    
+    std::cout << views.size() << std::endl;
     for(auto view : views){
+        std::cout << typeid(decltype(view)).name() << std::endl;
         view->updateComponents();
     }
 }
 
-void System::ComponentGroup::updateComponents(){
-            
-    std::cout << "updateComponents" << std::endl;
-    std::cout << this->components.size() << std::endl;
-
+void System::ComponentGroup::updateHelper(std::unordered_multimap<Entity, Component*> allComponents, std::unordered_set<size_t> tempDependencies){
     entities.clear();
     components.clear();
-
-    auto allComponents = parent.world.getComponents();
-    //                auto allComponents = parent.world.components;
-    auto tempDependencies = localDependencies;
-
+    
     std::set<Component*> tempComponents = std::set<Component*>();
 
     auto it = allComponents.begin();
@@ -63,7 +57,17 @@ void System::ComponentGroup::updateComponents(){
             range = allComponents.equal_range(it->first);
         }
     }
-    }
+}
+
+void System::ComponentGroup::updateComponents(){
+
+    std::cout << "updateComponents" << std::endl;
+    std::cout << &parent << std::endl;
+    auto allComponents = parent.world.getComponents();
+    auto tempDependencies = localDependencies;
+
+    updateHelper(allComponents, tempDependencies);
+}
 
 void System::Update(){
     //do updates before OnUpdate in case any entities or components have been added or removed

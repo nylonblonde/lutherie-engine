@@ -160,40 +160,50 @@ namespace ECS {
         virtual void notifyComponentChange();
         
         struct ComponentGroup {
-        private:
-            
-            template<typename T>
-            void componentGroupHelper(){
-                parent.dependencies.emplace(typeid(T).hash_code());
-                localDependencies.emplace(typeid(T).hash_code());
-            }
-
         protected:
             System& parent;
-            
             std::multimap<size_t, Component*> components;
             std::unordered_set<size_t> localDependencies;
-            std::set<Entity> entities; 
+            std::set<Entity> entities;
+            void updateHelper(std::unordered_multimap<Entity, Component*> allComponents, std::unordered_set<size_t> tempDependencies);
+        private:
             
+            void componentGroupHelper(size_t typeCode){
+                std::cout << "emplacing " << typeCode << std::endl;
+
+                parent.dependencies.emplace(typeCode);
+                localDependencies.emplace(typeCode);
+            }
             ComponentGroup(System& s) : parent(s){
                 entities = std::set<Entity>();
                 parent.views.push_back(this);
             }
         public:
+
+            System& getParent () const {
+                std::cout << "getting parent" << std::endl;
+                return parent;
+            }
             
             template<typename... Ts>
             static ComponentGroup createComponentGroup(System& s){
                 ComponentGroup retVal = ComponentGroup(s);
-                [](...){}((retVal.componentGroupHelper<Ts>(),0)...);
+                [](...){}((retVal.componentGroupHelper(typeid(Ts).hash_code()),0)...);
                 return retVal;
-                
+            }
+            
+            template<typename... Ts>
+            static ComponentGroup createComponentGroup(System& s, Ts... args){
+                ComponentGroup retVal = ComponentGroup(s);
+                [](...){}((retVal.componentGroupHelper(args),0)...);
+                return retVal;
             }
             
             size_t size() const{
                 return entities.size();
             }
             
-            virtual void updateComponents();
+            void updateComponents();
             
             template<typename T>
             T& getComponent (size_t index) const {
@@ -215,8 +225,6 @@ namespace ECS {
         }; //ComponentGroup
 
         void Update();
-
-    private:
         //Component Groups are the observers in a Observer/Listener pattern
         std::vector<ComponentGroup*> views;
 
