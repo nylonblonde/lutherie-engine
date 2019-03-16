@@ -6,35 +6,38 @@ find_package(PkgConfig)
 if(PkgConfig_FOUND)
     pkg_check_modules(GLFW glfw3)
     pkg_check_modules(LUA luajit)
+    
 endif()
 
 find_package(Vulkan)
 if(Vulkan_FOUND)
-    
+    set(VULKAN_LIBRARIES ${Vulkan_LIBRARIES})
+    set(VULKAN_LIBRARY_DIRS ${Vulkan_LIBRARY_DIRS}})
+    set(VULKAN_INCLUDE_DIRS ${Vulkan_INCLUDE_DIRS})
 endif()
 
-if(NOT LUA)
+if(NOT LUA_FOUND)
     set(LUA_LIBRARIES luajit)
     set(LUA_LIBRARY_DIRS /usr/local/lib CACHE PATH "")
     set(LUA_INCLUDE_DIRS /usr/local/include CACHE PATH "")
 endif()
 
-if(NOT GLFW)
+if(NOT GLFW_FOUND)
     set(GLFW_LIBRARIES glfw CACHE PATH "")
     set(GLFW_LIBRARY_DIRS /usr/local/lib CACHE PATH "")
     set(GLFW_INCLUDE_DIRS /usr/local/include CACHE PATH "")
 endif()
 	
-if(NOT Vulkan)
-    set(Vulkan_LIBRARIES vulkan)
-    set(Vulkan_LIBRARY_DIRS $ENV{VULKAN_SDK}/lib CACHE PATH "")
-    set(Vulkan_INCLUDE_DIRS $ENV{VULKAN_SDK}/include CACHE PATH "")
+if(NOT Vulkan_FOUND)
+    set(VULKAN_LIBRARIES vulkan)
+    set(VULKAN_LIBRARY_DIRS $ENV{VULKAN_SDK}/lib CACHE PATH "")
+    set(VULKAN_INCLUDE_DIRS $ENV{VULKAN_SDK}/include CACHE PATH "")
 endif()
 
 ## ECS Library 
 
 add_library(ECS SHARED 
-    ECS/src/ecs.cpp
+    ECS/src/ECS.cpp
 )
 
 add_custom_command(TARGET ECS PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/libs)
@@ -56,7 +59,7 @@ target_include_directories(ECSlua PUBLIC ECSlua/include ${LUA_INCLUDE_DIRS})
 target_link_directories(ECSlua PUBLIC ${CMAKE_BINARY_DIR}/libs ${LUA_LIBRARY_DIRS})
 target_link_libraries(ECSlua ${LUA_LIBRARIES} ECS)
 
-set(LINK_LIBS ${GLFW_LIBRARIES} ${Vulkan_LIBRARIES} ECSlua)
+set(LINK_LIBS ${GLFW_LIBRARIES} ${VULKAN_LIBRARIES} ECSlua)
 set(SOURCES src/lutherie.cpp src/main.cpp)
 
 set_target_properties(ECSlua PROPERTIES 
@@ -68,9 +71,9 @@ set_target_properties(ECSlua PROPERTIES
 
 add_executable(lutherie ${SOURCES})
 
-target_link_directories(lutherie PUBLIC ${CMAKE_BINARY_DIR}/libs ${GLFW_LIBRARY_DIRS} ${Vulkan_LIBRARY_DIRS})
+target_link_directories(lutherie PUBLIC ${CMAKE_BINARY_DIR}/libs ${GLFW_LIBRARY_DIRS} ${VULKAN_LIBRARY_DIRS})
 
-target_include_directories(lutherie PUBLIC ECSlua/include include ${GLFW_INCLUDE_DIRS} ${Vulkan_INCLUDE_DIRS})
+target_include_directories(lutherie PUBLIC ECSlua/include include ${GLFW_INCLUDE_DIRS} ${VULKAN_INCLUDE_DIRS})
 
 set_target_properties(lutherie PROPERTIES 
 	CXX_STANDARD 17
@@ -90,6 +93,7 @@ function(add_lua_file LUA_NAME)
         COMMAND luajit ARGS -b ${CMAKE_SOURCE_DIR}/scripts/${LUA_NAME}.lua ${CMAKE_BINARY_DIR}/${LIB_LUA_DIR}/${LUA_NAME}.raw
         DEPENDS ${CMAKE_SOURCE_DIR}/scripts/${LUA_NAME}.lua)
     add_custom_target(${LUA_NAME}.lua ALL DEPENDS ${CMAKE_BINARY_DIR}/${LIB_LUA_DIR}/${LUA_NAME}.raw)
+    add_dependencies(${LUA_NAME}.lua lutherie)
 endfunction()
 
 add_lua_file(lutherie)
