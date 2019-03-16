@@ -121,7 +121,7 @@ And finally, to run an update tick, you just need to call the static `World::upd
 
 ## Scripting in Lua
 
-# Example script
+### Example script
 
 ```require("lutherie") -- includes the lutherie lua library
 
@@ -148,4 +148,5 @@ local world = World:createWorld(Systems.MySystem)
 -- Creating an Entity to which we can assign components
 local entity = world:createEntity()
 -- Setting a component to an Entity
-local component = world:setComponent(entity, MyComponent)```
+local component = world:setComponent(entity, MyComponent)
+```
