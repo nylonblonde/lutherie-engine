@@ -107,6 +107,7 @@ void LuaSystem::OnUpdate(){
 
         if(result != 0){
             printLuaError(state);
+            lua_pop(state, lua_gettop(state));
             return;
         }
 
