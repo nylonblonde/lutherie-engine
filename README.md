@@ -15,7 +15,7 @@ From the root directory, make a build directory, cd into it, and run `cmake ..` 
 
 cmake will require some arguments to determine where the dependencies are located if pkgconfig cannot find the dependencies. Check CMakeLists.txt for arguments you may have to pass if they are not installed in the default installation locations.
 
-Vulkan will require you set a VULKAN_SDK environment variable with a path to where the SDK is located in order to find it. Alternatively, you can manually set the library directories and include directories with cmake definition arguments, ie: `cmake -DVulkan_LIBRARY_DIRS:PATH=~/vulkan/macOS/lib -DVulkan_INCLUDE_DIRS:PATH=~/vulkan/macOS/include ..` as opposed to just `cmake ..` below.
+Vulkan will require you set a VULKAN_SDK environment variable with a path to where the SDK is located in order to find it. Alternatively, you can manually set the library directories and include directories with cmake definition arguments, ie: `cmake -DVULKAN_LIBRARY_DIRS:PATH=/Users/lyon/vulkan/macOS/lib -DVULKAN_INCLUDE_DIRS:PATH=/Users/lyon/vulkan/macOS/include ..` as opposed to just `cmake ..` below.
 
 List of installation commands:
 
