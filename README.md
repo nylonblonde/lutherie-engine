@@ -123,7 +123,8 @@ And finally, to run an update tick, you just need to call the static `World::upd
 
 ### Example script
 
-```require("lutherie") -- includes the lutherie lua library
+```
+require("lutherie") -- includes the lutherie lua library
 
 -- Defining a component struct
 MyComponent = Component:Derived {
