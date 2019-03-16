@@ -12,7 +12,7 @@ endif()
 find_package(Vulkan)
 if(Vulkan_FOUND)
     set(VULKAN_LIBRARIES ${Vulkan_LIBRARIES})
-    set(VULKAN_LIBRARY_DIRS ${Vulkan_LIBRARY_DIRS}})
+    set(VULKAN_LIBRARY_DIRS ${Vulkan_LIBRARY_DIRS})
     set(VULKAN_INCLUDE_DIRS ${Vulkan_INCLUDE_DIRS})
 endif()
 
