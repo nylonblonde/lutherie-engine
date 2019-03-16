@@ -1,8 +1,40 @@
 # Lutherie Engine
 
-Lutherie Engine is a game development engine powered by an Entity Component System pattern written in C++. Currently, the engine only features the ECS architecture, to which features like rendering will be added to as development continues.
+Lutherie Engine is a game development engine powered by an Entity Component System pattern written in C/C++ and supports scripting with Lua. Currently, the engine only features the ECS architecture, to which features like rendering will be added to as development continues.
+
+## Build instructions
+
+Lutherie Engine depends on the following libraries
+- [LuaJIT](http://luajit.org/git/luajit-2.0.git)
+- [Vulkan](https://vulkan.lunarg.com/sdk/home)
+- [GLFW](https://github.com/glfw/glfw)
+
+Ensure that you have the shared libraries of GLFW installed rather than static. You can follow their build instructions to ensure shared libraries are built if compiling from source.
+
+From the root directory, make a build directory, cd into it, and run `cmake ..` and then `make`.
+
+cmake will require some arguments to determine where the dependencies are located if pkgconfig cannot find the dependencies. Check CMakeLists.txt for arguments you may have to pass if they are not installed in the default installation locations.
+
+Vulkan will require you set a VULKAN_SDK environment variable with a path to where the SDK is located in order to find it. Alternatively, you can manually set the library directories and include directories with cmake definition arguments, ie: `cmake -DVulkan_LIBRARY_DIRS:PATH=~/vulkan/macOS/lib -DVulkan_INCLUDE_DIRS:PATH=~/vulkan/macOS/include ..` as opposed to just `cmake ..` below.
+
+List of installation commands:
+
+```
+mkdir build
+cd build
+cmake ..
+make
+```
+
+Once built, you can run the engine with `./lutherie`, which will output arguments for usage.
 
 ## Getting Started
+
+Run the program from your build directory with `./lutherie -o <path-to-a-project-directory>` where the path is an arbitrary folder where you want project files to go. If the directory doesn't exist, it will be created.
+
+Go ahead and close the program, and navigate to the project directory. You can place lua scripts in the `scripts/` subdirectory.
+
+## ECS in C++
 
 **Components** are structs that carry data which will be used by our `System` classes to perform logic. 
 
@@ -86,3 +118,34 @@ public:
 ```
 
 And finally, to run an update tick, you just need to call the static `World::updateActive(World::allWorlds)`. Notice that this takes a `vector<World*>` as a parameter, so it can be executed on all current worlds or even just a user-defined selection of them.
+
+## Scripting in Lua
+
+# Example script
+
+```require("lutherie") -- includes the lutherie lua library
+
+-- Defining a component struct
+MyComponent = Component:Derived {
+    val = 100;   
+} 
+
+-- Defining a System factory function
+function Systems.MySystem()
+    return System:Derived {
+        group = self:createComponentGroup(MyComponent),
+        OnUpdate = function(self)
+            myComponents = self.group:getComponentArray(MyComponent)
+            for i=1, self.group:size() do
+                print(myComponents[i].val) 
+            end
+        end
+    }
+end
+
+-- Creating a world, passing System factory functions which will register Systems to World
+local world = World:createWorld(Systems.MySystem)
+-- Creating an Entity to which we can assign components
+local entity = world:createEntity()
+-- Setting a component to an Entity
+local component = world:setComponent(entity, MyComponent)```

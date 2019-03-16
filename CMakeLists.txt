@@ -1,14 +1,35 @@
 cmake_minimum_required(VERSION 3.13.3)
 project(lutherie)
 
-set(LUA_LIB_DIR /usr/local/lib CACHE PATH "")
-set(LUA_INCLUDE_DIR /usr/local/include CACHE PATH "")
+find_package(PkgConfig)
 
-set(GLFW_LIB_DIR /usr/local/lib CACHE PATH "")
-set(GLFW_INCLUDE_DIR /usr/local/include CACHE PATH "")
+if(PkgConfig_FOUND)
+    pkg_check_modules(GLFW glfw3)
+    pkg_check_modules(LUA luajit)
+endif()
+
+find_package(Vulkan)
+if(Vulkan_FOUND)
+    
+endif()
+
+if(NOT LUA)
+    set(LUA_LIBRARIES luajit)
+    set(LUA_LIBRARY_DIRS /usr/local/lib CACHE PATH "")
+    set(LUA_INCLUDE_DIRS /usr/local/include CACHE PATH "")
+endif()
+
+if(NOT GLFW)
+    set(GLFW_LIBRARIES glfw CACHE PATH "")
+    set(GLFW_LIBRARY_DIRS /usr/local/lib CACHE PATH "")
+    set(GLFW_INCLUDE_DIRS /usr/local/include CACHE PATH "")
+endif()
 	
-set(VULKAN_LIB_DIR $ENV{HOME}/vulkansdk-macos-1.1.92.1/macOS/lib CACHE PATH "")
-set(VULKAN_INCLUDE_DIR $ENV{HOME}/vulkansdk-macos-1.1.92.1/macOS/include CACHE PATH "")
+if(NOT Vulkan)
+    set(Vulkan_LIBRARIES vulkan)
+    set(Vulkan_LIBRARY_DIRS $ENV{VULKAN_SDK}/lib CACHE PATH "")
+    set(Vulkan_INCLUDE_DIRS $ENV{VULKAN_SDK}/include CACHE PATH "")
+endif()
 
 ## ECS Library 
 
@@ -31,11 +52,11 @@ add_library(ECSlua SHARED
     ECSlua/src/ECSlua.cpp
 )
 
-target_include_directories(ECSlua PUBLIC ECSlua/include ${LUA_INCLUDE_DIR})
-target_link_directories(ECSlua PUBLIC ${CMAKE_BINARY_DIR}/libs ${LUA_LIB_DIR})
-target_link_libraries(ECSlua luajit ECS)
+target_include_directories(ECSlua PUBLIC ECSlua/include ${LUA_INCLUDE_DIRS})
+target_link_directories(ECSlua PUBLIC ${CMAKE_BINARY_DIR}/libs ${LUA_LIBRARY_DIRS})
+target_link_libraries(ECSlua ${LUA_LIBRARIES} ECS)
 
-set(LINK_LIBS glfw vulkan ECSlua)
+set(LINK_LIBS ${GLFW_LIBRARIES} ${Vulkan_LIBRARIES} ECSlua)
 set(SOURCES src/lutherie.cpp src/main.cpp)
 
 set_target_properties(ECSlua PROPERTIES 
@@ -47,13 +68,14 @@ set_target_properties(ECSlua PROPERTIES
 
 add_executable(lutherie ${SOURCES})
 
-target_link_directories(lutherie PUBLIC ${CMAKE_BINARY_DIR}/libs ${GLFW_LIB_DIR} ${VULKAN_LIB_DIR})
+target_link_directories(lutherie PUBLIC ${CMAKE_BINARY_DIR}/libs ${GLFW_LIBRARY_DIRS} ${Vulkan_LIBRARY_DIRS})
 
-target_include_directories(lutherie PUBLIC ECSlua/include include ${GLFW_INCLUDE_DIR} ${VULKAN_INCLUDE_DIR})
+target_include_directories(lutherie PUBLIC ECSlua/include include ${GLFW_INCLUDE_DIRS} ${Vulkan_INCLUDE_DIRS})
 
 set_target_properties(lutherie PROPERTIES 
 	CXX_STANDARD 17
 )
+
 if(APPLE)
 target_link_options(lutherie PUBLIC "-pagezero_size 10000 -image_base 100000000")
 endif()

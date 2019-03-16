@@ -1,7 +1,7 @@
 #ifndef ECSlua_hpp
 #define ECSlua_hpp
 
-#include <luajit-2.0/lua.hpp>
+#include <lua.hpp>
 #include <ECS.hpp>
 #include <list>
 
