@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <fstream>
+#include <cstring>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
