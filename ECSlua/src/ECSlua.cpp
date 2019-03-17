@@ -158,6 +158,10 @@ Component* LuaSystem::getComponent(System::ComponentGroup* cg, size_t typeCode, 
 
 LuaComponent::LuaComponent(size_t componentType) : type(componentType){}
 
+LuaComponent::~LuaComponent() {
+    free(data);
+}
+
 extern "C" {
     void* createWorld() {
         return &static_cast<LuaWorld&>(World::createWorld());

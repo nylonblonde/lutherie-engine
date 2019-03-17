@@ -34,6 +34,7 @@ private:
     void* data = nullptr;
 public:
     LuaComponent(size_t componentType);
+    ~LuaComponent();
     size_t getType() const {
         return type;
     }

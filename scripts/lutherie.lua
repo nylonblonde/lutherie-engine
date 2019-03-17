@@ -32,6 +32,9 @@ ffi.cdef[[
     Entity* group_getEntity(System* parent, ComponentGroup* componentGroup, int index);
     Component* group_getComponent(System* parent, ComponentGroup* componentGroup, size_t typeCode, int index);
     
+    typedef struct string { char val[]; } string;
+
+    void free(void*);
 ]]
 
 local ecs = ffi.load("ECSlua")
@@ -91,10 +94,10 @@ local world_mt = {
             assert(type(component) == "table", "Component function must return a table value")
             assert(type(component.type) == "number", "Component has no type number")
             data = component:new()
-            component.embedded = ecs.setComponent(self, entity, component.type)
-            ecs.component_setDataPtr(component.embedded, data)
-            assert(component ~= NULL, "Cannot set a component on an entity that hasn't been created or has been destroyed")
-            data.embedded = component.embedded
+            print(data)
+            data.embedded = ecs.setComponent(self, entity, component.type)
+            ecs.component_setDataPtr(data.embedded, data.self)
+--            assert(data.embedded ~= NULL, "Cannot set a component on an entity that hasn't been created or has been destroyed")
 --            print(data.embedded)
             return data
         end,
@@ -114,13 +117,17 @@ local group_mt = {
             local size = self:size()
             local component = component()
             local typeCode = component.type
+            local ctype = component.ctype
             for i=1, size do
-                
 --                entity = ecs.group_getEntity(self.parent, self, i-1)
 --                print(entity, typeCode, self.parent.world)
 
 --                assert(self.parent.world.Components[entity])
-                array[i] = ecs.group_getComponent(self.parent, self, typeCode, i-1):getData()
+                array[i] = ffi.cast(ctype,
+--                    ecs.group_getComponent(self.parent, self, typeCode, i-1).data
+--
+                    ecs.group_getComponent(self.parent, self, typeCode, i-1):getData()
+                    ):getProxy()
             end
             return array
         end,
@@ -135,9 +142,17 @@ local component_mt = {
     }
 }
 
+local string_mt = {
+    __tostring = function(v) 
+        return ffi.string(v.val)
+    end
+        
+}
+
 ffi.metatype("World", world_mt)
 ffi.metatype("ComponentGroup", group_mt)
 ffi.metatype("Component", component_mt)
+ffi.metatype("struct string", string_mt)
 
 function getInvertedTable(table, target)
     target = target or {}
@@ -234,8 +249,11 @@ Component = {
         self.type = #Components+1
         setmetatable(obj, self)
         self.__index = self
-        Components[self.type] = function() 
-            local typedef = "typedef struct Component"..self.type.." { "
+        Components[self.type] = function()
+            if(self.ctype) then return Components[self.type] end
+            
+            local ctypename = "struct Component"..self.type
+            local typedef = "typedef "..ctypename.." { "
             local newObj = {}
 
             typedef = typedef.."void* embedded; "
@@ -244,18 +262,50 @@ Component = {
                     typedef = typedef.."int "..k.."; "
                     newObj[k] = v
                 elseif type(k)=="string" and type(v)=="string" then
-                    typedef = typedef.."char[] "..k.."; "
+                    typedef = typedef.."const char* "..k.."; "
                     newObj[k] = v
                 end
             end
---            obj = newObj
+            typedef = typedef.."} Component"..self.type..";"
+
             obj.new = function(obj)
-                typedef = typedef.."} Component"..self.type..";"
-                print(typedef)
+                local proxy = {}
                 ffi.cdef (typedef)
-                obj.data = ffi.new("struct Component"..self.type, newObj)
-                return obj.data
+
+                local data = ffi.new(ctypename, newObj)
+
+                setmetatable(proxy, {
+                    __index = function(t,k)
+                        if(k == "self") then return data end
+                        
+                        local retVal = data[k]
+                        
+                        if(ffi.typeof(retVal) == ffi.typeof("const char *")) then retVal = ffi.string(retVal) end
+                            
+                        return retVal
+                    end,
+                    __newindex = function(t,k,v)
+                        print("setting: ", k, v)
+                        data[k] = v
+                    end
+                })
+
+                ffi.metatype(data, {
+                    __index = {
+                        getProxy = function(self)
+                            return proxy     
+                        end
+                    }      
+                })
+                
+                self.ctype = ffi.typeof(ctypename.."&")
+                
+--                data.val = "yo"
+                print("proxy", proxy.self)
+            
+                return proxy
             end
+            Components[self.type] = obj
             return obj
         end
         return Components[self.type]
