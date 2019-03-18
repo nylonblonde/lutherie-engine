@@ -5,6 +5,8 @@
 #include <ECS.hpp>
 #include <list>
 
+#include "ECSlua_export.h"
+
 using namespace ECS;
 
 void printLuaError(lua_State* state);
@@ -15,17 +17,18 @@ private:
     lua_State* mainState;
     
     ECSLua();
+
 public:
     static ECSLua& Instance();
     
-    ECSLua(ECSLua const&) = delete;
-    void operator=(ECSLua const&) = delete;
-    
+	ECSLua(lua_State* s);
+	~ECSLua();
+	ECSLua(ECSLua const&) = delete;
+	void operator=(ECSLua const&) = delete;
     void executeLua(const char* filepath);
     
     lua_State* getState();
-    ECSLua(lua_State* s);
-    ~ECSLua();
+    
 };
 
 class LuaComponent : public Component {
@@ -56,9 +59,8 @@ protected:
             static_cast<LuaSystem&>(parent).views.push_back(this);
         }
         void updateComponents();
-//    public:
         void addDependencies(){}
-//
+
         template<typename... Ts>
         void addDependencies(size_t componentType, Ts... args){
             std::cout << &parent << std::endl;

@@ -16,7 +16,9 @@
 //#include <glm/mat4x4.hpp>
 
 #include <ECSlua.hpp>
+#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
 #include "fs.h"
+#endif // _WIN32
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -44,7 +46,6 @@ public:
     }
     
     static Lutherie& Instance();
-    
     Lutherie(Lutherie const&) = delete;
     void operator=(Lutherie const&) = delete;
         
@@ -58,7 +59,7 @@ private:
     const char* resourcesDir;
     const char* libDir;
     
-    ECSLua ecs = ECSLua(luaL_newstate());
+    ECSLua* ecs;
     
     GLFWwindow* window;
     bool frameBufferResized = false;

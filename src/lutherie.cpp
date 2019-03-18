@@ -1,25 +1,30 @@
 #include "lutherie.hpp"
 #include <chrono>
+#include <string>
 
-Lutherie::Lutherie(){}
 using namespace ECS;
 
 //static void newState(){
 //    mainState = &luaL_newstate();
 //}
 
-Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir) : projectDir(dir), scriptsDir(sDir), resourcesDir(rDir), libDir(lDir) {
-    char filename[] = "test-actual.lua";
-    char fullPath[strlen(scriptsDir) + strlen(filename)+1];
-    strcpy(fullPath, scriptsDir);
-    strcat(fullPath, filename);
-    ecs.executeLua(fullPath);
+Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir) : projectDir(dir), scriptsDir(sDir), resourcesDir(rDir), libDir(lDir), ecs(new ECSLua(luaL_newstate())) {
+    const char* filename = "test-actual.lua";
+    //char fullPath[strlen(scriptsDir) + strlen(filename)+1];
+	std::string fullPath = std::string(sDir) + std::string(filename);
+    //strcpy(fullPath, scriptsDir);
+    //strcat(fullPath, filename);
+    
+	ecs->executeLua(fullPath.c_str());
     
     initWindow();
     mainLoop();
 }
 
-Lutherie::~Lutherie(){}
+Lutherie::Lutherie() {}
+Lutherie::~Lutherie(){
+	delete ecs;
+}
 
 Lutherie& Lutherie::Instance(){
     static Lutherie instance;

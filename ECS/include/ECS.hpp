@@ -10,6 +10,8 @@
 #include <unordered_set>
 #include <iterator>
 
+#include "ECS_export.h"
+
 namespace ECS {
 
     struct TypedObject {
@@ -92,7 +94,7 @@ namespace ECS {
                 
     public:
         uint32_t id() const { return _id; }
-        static std::vector<World*> allWorlds;
+        static ECS_EXPORT std::vector<World*> allWorlds;
         
         template<typename... Args>
         static World& createWorld(System* s, Args... args){

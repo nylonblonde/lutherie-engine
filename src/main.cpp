@@ -23,7 +23,7 @@ public:
     
 };
 
-int main(int carg, char* args[]){
+int main(size_t carg, char* args[]){
     
     if(carg < 2){
         std::cout << "Usage: Lutherie [options [args]]" << std::endl;
@@ -36,8 +36,9 @@ int main(int carg, char* args[]){
         if(strcmp(args[i], "-o") == 0 || strcmp(args[i], "--open") == 0){
             
             char* path = args[i+1];
-            char newPath[strlen(path)];
+            //char newPath[strlen(path)];
 
+#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
             if(strncmp(path, "~", 1) == 0){
                 char* home = getenv("HOME");
                 strcpy(newPath, home);
@@ -87,6 +88,8 @@ int main(int carg, char* args[]){
                     Lutherie lutherie = Lutherie(path, scriptsPath, resPath, libPath);
                 }
             }
+
+#endif // __unix__ 
         
             return 0;
         }
