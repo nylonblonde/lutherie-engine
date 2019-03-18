@@ -5,7 +5,7 @@
 #include <ECS.hpp>
 #include <list>
 
-#include "ECSlua_export.h"
+#include "ecslua_export.h"
 
 using namespace ECS;
 

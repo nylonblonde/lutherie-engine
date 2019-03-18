@@ -18,7 +18,7 @@
 #include <ECSlua.hpp>
 #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
 #include "fs.h"
-#endif // _WIN32
+#endif
 
 const int WIDTH = 800;
 const int HEIGHT = 600;

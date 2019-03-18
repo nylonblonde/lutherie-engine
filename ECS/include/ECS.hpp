@@ -10,7 +10,7 @@
 #include <unordered_set>
 #include <iterator>
 
-#include "ECS_export.h"
+#include "ecs_export.h"
 
 namespace ECS {
 

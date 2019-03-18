@@ -23,9 +23,9 @@ public:
     
 };
 
-int main(size_t carg, char* args[]){
+int main(int carg, char* args[]){
     
-    if(carg < 2){
+    if(carg < static_cast<int>(2)){
         std::cout << "Usage: Lutherie [options [args]]" << std::endl;
         std::cout << "Available options:" << std::endl;
         std::cout << "-o | --open   <path-to-project>   Opens a Lutherie project at path destination or creates one if directory doesn't contain one" << std::endl;
@@ -35,10 +35,10 @@ int main(size_t carg, char* args[]){
     for(size_t i = 1; i < carg; i+=2){
         if(strcmp(args[i], "-o") == 0 || strcmp(args[i], "--open") == 0){
             
-            char* path = args[i+1];
-            //char newPath[strlen(path)];
-
 #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+            char* path = args[i+1];
+            char newPath[strlen(path)];
+            
             if(strncmp(path, "~", 1) == 0){
                 char* home = getenv("HOME");
                 strcpy(newPath, home);
