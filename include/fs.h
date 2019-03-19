@@ -20,7 +20,7 @@ namespace fs {
         return 0;
     }
     
-#if defined(__APPLE__) && defined(__MACH__)
+#if defined (LUTHERIE_MAC)
     static bool pathExists(const char* path){
         struct stat info;
         
@@ -86,7 +86,7 @@ namespace fs {
         
         return makePath(subdirPath);
     }
-#endif // defined(__APPLE__) && defined(__MACH__)
+#endif // defined(__APPLE__)
 
 }
 #endif /* fs_hpp */

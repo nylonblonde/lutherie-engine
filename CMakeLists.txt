@@ -92,12 +92,16 @@ target_include_directories(lutherie PUBLIC ECSlua/include include ${GLFW_INCLUDE
 set_target_properties(lutherie PROPERTIES 
 	CXX_STANDARD 17
 )
+
 if(WIN32)
-  add_definitions(-DNODEFAULTLIB:library -D_CRT_SECURE_NO_WARNINGS)
+    add_definitions(-DNODEFAULTLIB:library -D_CRT_SECURE_NO_WARNINGS)
 endif()
+
 if(APPLE)
-target_link_options(lutherie PUBLIC "-pagezero_size 10000 -image_base 100000000")
+    add_definitions(-DLUTHERIE_MAC)
+    target_link_options(lutherie PUBLIC "-pagezero_size 10000 -image_base 100000000")
 endif()
+
 target_link_libraries(lutherie ${LINK_LIBS})
 
 add_custom_command(TARGET ECS PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/libs/lua)

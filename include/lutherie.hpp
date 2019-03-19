@@ -16,11 +16,10 @@
 //#include <glm/mat4x4.hpp>
 
 #include <ECSlua.hpp>
-//#if (defined(__APPLE__) && defined(__MACH__))
 #include "fs.h"
-//#else
-#include <filesystem>
-//#endif
+#if not defined( LUTHERIE_MAC )
+    #include <filesystem>
+#endif
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
