@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <string>
 
 namespace fs {
 
@@ -19,6 +20,7 @@ namespace fs {
         return 0;
     }
     
+#if defined(__APPLE__) && defined(__MACH__)
     static bool pathExists(const char* path){
         struct stat info;
         
@@ -41,11 +43,7 @@ namespace fs {
                 continue;
             }
             
-    #if defined(_WIN32) || defined(_WIN64)
-            int dashed = (path[i] == '\\');
-    #else
             int dashed = (path[i] == '/');
-    #endif
             
             if(dashed){
                 if(i == strlen(path)){
@@ -74,11 +72,7 @@ namespace fs {
     static bool addSubDirectory(const char* path, const char* subdir){
         char subdirPath[strlen(path)+strlen(subdir)+1];
         
-    #if defined(_WIN32) || defined(_WIN64)
-        int needsSlash = path[strlen(path)] != '\\' && subdir[0] != '\\';
-    #else
         int needsSlash = path[strlen(path)] != '/' && subdir[0] != '/';
-    #endif
         
         strcpy(subdirPath, path);
         
@@ -92,6 +86,7 @@ namespace fs {
         
         return makePath(subdirPath);
     }
+#endif // defined(__APPLE__) && defined(__MACH__)
 
 }
-#endif /* fs_h */
+#endif /* fs_hpp */

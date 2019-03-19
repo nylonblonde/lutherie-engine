@@ -94,7 +94,6 @@ local world_mt = {
             assert(type(component) == "table", "Component function must return a table value")
             assert(type(component.type) == "number", "Component has no type number")
             data = component:new()
-            print(data)
             data.embedded = ecs.setComponent(self, entity, component.type)
             ecs.component_setDataPtr(data.embedded, data.self)
 --            assert(data.embedded ~= NULL, "Cannot set a component on an entity that hasn't been created or has been destroyed")
@@ -118,6 +117,7 @@ local group_mt = {
             local component = component()
             local typeCode = component.type
             local ctype = component.ctype
+			print(component.ctype)
             for i=1, size do
 --                entity = ecs.group_getEntity(self.parent, self, i-1)
 --                print(entity, typeCode, self.parent.world)
@@ -280,7 +280,7 @@ Component = {
                         
                         local retVal = data[k]
                         
-                        if(ffi.typeof(retVal) == ffi.typeof("const char *")) then retVal = ffi.string(retVal) end
+                        if(type(retVal) == "cdata" and ffi.typeof(retVal) == ffi.typeof("const char *")) then retVal = ffi.string(retVal) end
                             
                         return retVal
                     end,

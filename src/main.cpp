@@ -25,18 +25,26 @@ public:
 
 int main(int carg, char* args[]){
     
-    if(carg < static_cast<int>(2)){
+    if(carg < 2){
         std::cout << "Usage: Lutherie [options [args]]" << std::endl;
         std::cout << "Available options:" << std::endl;
         std::cout << "-o | --open   <path-to-project>   Opens a Lutherie project at path destination or creates one if directory doesn't contain one" << std::endl;
         return 0;
     }
     
-    for(size_t i = 1; i < carg; i+=2){
+    for(int i = 1; i < carg; i+=2){
         if(strcmp(args[i], "-o") == 0 || strcmp(args[i], "--open") == 0){
-            
-#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
-            char* path = args[i+1];
+			char* path = args[i + 1];
+
+			char scriptsDir[9] = "scripts";
+			char resDir[11] = "resources";
+			char libDir[5] = "lib";
+
+			fs::addOSSlash(scriptsDir);
+			fs::addOSSlash(resDir);
+			fs::addOSSlash(libDir);
+
+#if (defined(__APPLE__) && defined(__MACH__))
             char newPath[strlen(path)];
             
             if(strncmp(path, "~", 1) == 0){
@@ -89,8 +97,21 @@ int main(int carg, char* args[]){
                 }
             }
 
-#endif // __unix__ 
-        
+#else // not __APPLE__ 
+			fs::addOSSlash(path);
+			std::string scriptsPath = std::string(path) + std::string(scriptsDir);
+			std::string resPath = std::string(path) + std::string(resDir);
+			std::string libPath = std::string(path) + std::string(libDir);
+			std::cout << scriptsPath << std::endl << resPath << std::endl << libPath << std::endl;
+			if (std::filesystem::exists(scriptsPath) || std::filesystem::create_directories(scriptsPath) &&
+				std::filesystem::exists(resPath) || std::filesystem::create_directories(resPath) &&
+				std::filesystem::exists(libPath) || std::filesystem::create_directories(libPath)) {
+				
+				Lutherie lutherie = Lutherie(path, scriptsPath.c_str(), resPath.c_str(), libPath.c_str());
+			}
+			
+#endif
+			
             return 0;
         }
     }

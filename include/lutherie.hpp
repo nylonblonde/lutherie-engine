@@ -16,9 +16,11 @@
 //#include <glm/mat4x4.hpp>
 
 #include <ECSlua.hpp>
-#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+//#if (defined(__APPLE__) && defined(__MACH__))
 #include "fs.h"
-#endif
+//#else
+#include <filesystem>
+//#endif
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
