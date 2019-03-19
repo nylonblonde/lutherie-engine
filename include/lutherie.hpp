@@ -17,7 +17,7 @@
 
 #include <ECSlua.hpp>
 #include "fs.h"
-#if not defined( LUTHERIE_MAC )
+#ifndef LUTHERIE_MAC
     #include <filesystem>
 #endif
 

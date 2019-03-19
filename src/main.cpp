@@ -44,7 +44,7 @@ int main(int carg, char* args[]){
 			fs::addOSSlash(resDir);
 			fs::addOSSlash(libDir);
 
-#if (defined(__APPLE__) && defined(__MACH__))
+#if defined (LUTHERIE_MAC)
             char newPath[strlen(path)];
             
             if(strncmp(path, "~", 1) == 0){
@@ -97,15 +97,18 @@ int main(int carg, char* args[]){
                 }
             }
 
-#else // not __APPLE__ 
+#else // not LUTHERIE_MAC
 			fs::addOSSlash(path);
 			std::string scriptsPath = std::string(path) + std::string(scriptsDir);
 			std::string resPath = std::string(path) + std::string(resDir);
 			std::string libPath = std::string(path) + std::string(libDir);
+
+			std::filesystem::create_directories(scriptsPath);
+			std::filesystem::create_directories(resPath);
+			std::filesystem::create_directories(libPath);
+
 			std::cout << scriptsPath << std::endl << resPath << std::endl << libPath << std::endl;
-			if (std::filesystem::exists(scriptsPath) || std::filesystem::create_directories(scriptsPath) &&
-				std::filesystem::exists(resPath) || std::filesystem::create_directories(resPath) &&
-				std::filesystem::exists(libPath) || std::filesystem::create_directories(libPath)) {
+			if (std::filesystem::exists(scriptsPath) &&	std::filesystem::exists(resPath) &&	std::filesystem::exists(libPath)) {
 				
 				Lutherie lutherie = Lutherie(path, scriptsPath.c_str(), resPath.c_str(), libPath.c_str());
 			}
