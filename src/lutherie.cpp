@@ -1,6 +1,5 @@
 #include "lutherie.hpp"
 #include <chrono>
-#include <string>
 
 using namespace ECS;
 
@@ -9,14 +8,20 @@ using namespace ECS;
 //}
 
 Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir) : projectDir(dir), scriptsDir(sDir), resourcesDir(rDir), libDir(lDir), ecs(new ECSLua(luaL_newstate())) {
-    const char* filename = "test-actual.lua";
-    //char fullPath[strlen(scriptsDir) + strlen(filename)+1];
+    
+#ifdef LUTHERIE_MAC
+	const char* filename = "test-actual.lua";
+	char fullPath[strlen(scriptsDir) + strlen(filename)+1];
 	std::string fullPath = std::string(sDir) + std::string(filename);
-    //strcpy(fullPath, scriptsDir);
-    //strcat(fullPath, filename);
-    
-	ecs->executeLua(fullPath.c_str());
-    
+	strcpy(fullPath, scriptsDir);
+	strcat(fullPath, filename);
+	ecs->executeLua(fullPath);
+#else
+	for (std::filesystem::directory_entry it : std::filesystem::recursive_directory_iterator(sDir)) {
+		std::cout << it.path() << std::endl;
+		ecs->executeLua(it.path().string().c_str());
+	}
+#endif
     initWindow();
     mainLoop();
 }

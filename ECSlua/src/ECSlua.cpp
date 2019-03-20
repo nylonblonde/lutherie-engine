@@ -10,7 +10,17 @@ ECSLua::ECSLua(lua_State* s) : mainState(s){
         throw std::runtime_error("Failed to initializa lua!");
     }
     luaL_openlibs(mainState);
-    
+
+	lua_getglobal(mainState, "package");
+	lua_getfield(mainState, -1, "path");
+	luaL_Buffer b;
+	luaL_buffinit(mainState, &b);
+	luaL_addvalue(&b);
+	luaL_addstring(&b, ";./libs/lua/?.raw;;");
+	luaL_pushresult(&b);
+	lua_setfield(mainState, -2, "path");
+	lua_pop(mainState, 1);
+
     instance = this;
 }
 ECSLua::~ECSLua(){
@@ -23,16 +33,6 @@ lua_State* ECSLua::getState(){
 }
 
 void ECSLua::executeLua(const char* filepath){
-    
-    lua_getglobal(mainState, "package");
-    lua_getfield(mainState, -1, "path");
-    luaL_Buffer b;
-    luaL_buffinit(mainState, &b);
-    luaL_addvalue(&b);
-    luaL_addstring(&b,";./libs/lua/?.raw;;");
-    luaL_pushresult(&b);
-    lua_setfield(mainState, -2, "path");
-    lua_pop(mainState, 1);
     
     int result = luaL_dofile(mainState, filepath);
 

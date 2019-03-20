@@ -69,7 +69,6 @@ private:
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
     
     void mainLoop();
-    void gameLoop();
     
     Lutherie();
 };
