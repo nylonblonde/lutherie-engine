@@ -38,7 +38,7 @@ int main(int carg, char* args[]){
 
 			char scriptsDir[9] = "scripts";
 			char resDir[11] = "resources";
-			char libDir[5] = "lib";
+			char libDir[6] = "libs";
 
 			fs::addOSSlash(scriptsDir);
 			fs::addOSSlash(resDir);
@@ -62,7 +62,7 @@ int main(int carg, char* args[]){
                 
                 char scriptsDir[] = "scripts/";
                 char resDir[] = "resources/";
-                char libDir[] = "lib/";
+                char libDir[] = "libs/";
                 
                 if(fs::addSubDirectory(path, scriptsDir) && fs::addSubDirectory(path, resDir) && fs::addSubDirectory(path, libDir)){
                     char scriptsPath[strlen(path)+strlen(scriptsDir)+1];
