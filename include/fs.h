@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <string>
-#ifdef LUTHERIE_MAC
+#if defined(LUTHERIE_MAC) || defined(__unix__)
 	#include <dirent.h>
 #endif
 
@@ -23,7 +23,7 @@ namespace fs {
         return 0;
     }
     
-#if defined (LUTHERIE_MAC)
+#if defined (LUTHERIE_MAC) || defined(__unix__)
     
     static void doOnFilesInDir(const char* path, void(*f)(const char*)) {
         DIR* d;

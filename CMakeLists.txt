@@ -57,7 +57,7 @@ set_target_properties(ECS PROPERTIES
 
 ## ECSlua Library
 
-add_library(ECSlua SHARED
+add_library(ECSlua STATIC
     ECSlua/src/ECSlua.cpp
 )
 
@@ -75,8 +75,8 @@ set(SOURCES src/lutherie.cpp src/main.cpp)
 
 set_target_properties(ECSlua PROPERTIES 
     CXX_STANDARD 17
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libs
-    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libs
+    #LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libs
+    #ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libs
 )
 
 ## Executable

@@ -14,7 +14,7 @@ void luaLoadCallback(ECSLua* ecs, const char* fn){
 
 Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir) : projectDir(dir), scriptsDir(sDir), resourcesDir(rDir), libDir(lDir), ecs(new ECSLua(luaL_newstate())) {
     
-#ifdef LUTHERIE_MAC
+#if defined(LUTHERIE_MAC) || defined(__unix__)
 //	const char* filename = "test-actual.lua";
 //	char fullPath[strlen(scriptsDir) + strlen(filename)+1];
 	//std::string fullPath = std::string(sDir) + std::string(filename);

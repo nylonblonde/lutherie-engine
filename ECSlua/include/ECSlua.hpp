@@ -26,7 +26,7 @@ public:
 	ECSLua(ECSLua const&) = delete;
 	void operator=(ECSLua const&) = delete;
     static void executeLua(const char* filepath);
-    
+    void* ecsExtern;
     lua_State* getState();
     
 };
@@ -109,5 +109,57 @@ class LuaWorld : public World {
 public:
     void RegisterSystem(System* system);
 };
+
+extern "C" {
+    void* createWorld();
+    
+    int world_id(World* world);
+
+    void registerSystem(LuaWorld* world, System* system);
+    
+    void* createSystem(World* world, const char* name);
+    
+    void* createComponentGroup(LuaSystem* system);
+    
+    void addComponentDependency(LuaSystem* system, void* groupPtr, int componentType);
+    
+    const Entity* createEntity(World* world);
+    
+    void removeEntity(LuaWorld* world, Entity* entity);
+    
+    void component_setDataPtr(LuaComponent* component, void* ptr);
+    
+    void* component_getData(LuaComponent* component);
+    
+    void* setComponent(LuaWorld* world, Entity* entity, int componentType);
+    
+    void removeComponent(LuaWorld* world, Entity* entity, LuaComponent* component);
+    
+    int group_size(LuaSystem* system, void* groupPtr);
+    
+    const Entity* group_getEntity(LuaSystem* system, void* groupPtr, int index);
+    
+    void* group_getComponent(LuaSystem* system, void* groupPtr, int typeCode, int index);
+
+    typedef struct ECSextern {
+
+        void* (*createWorld)();
+        int (*world_id)(World*);
+        void (*registerSystem)(LuaWorld*, System*);
+        void* (*createSystem)(World*, const char*);
+        void* (*createComponentGroup)(LuaSystem*);
+        void (*addComponentDependency)(LuaSystem*, void*, int);
+        const Entity* (*createEntity)(World*);
+        void (*removeEntity)(LuaWorld*, Entity*);
+        void (*component_setDataPtr)(LuaComponent*, void*);
+        void* (*component_getData)(LuaComponent*);
+        void* (*setComponent)(LuaWorld*, Entity*, int);
+        void (*removeComponent)(LuaWorld*, Entity*, LuaComponent*);
+        int (*group_size)(LuaSystem*, void*);
+        const Entity* (*group_getEntity)(LuaSystem*, void*, int);
+        void* (*group_getComponent)(LuaSystem*, void*, int, int);
+
+    } ECSextern;
+}
 
 #endif /* ECSlua_hpp */

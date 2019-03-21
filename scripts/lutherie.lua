@@ -1,7 +1,7 @@
 local ffi = require("ffi")
 
 ffi.cdef[[
-	typedef struct World World;
+    typedef struct World World;
     typedef struct System {
         World* world;
     } System;
@@ -10,34 +10,71 @@ ffi.cdef[[
     } ComponentGroup;
     typedef struct Component Component;
     typedef struct Entity Entity;
-
-    World* createWorld();
-    int world_id(World* world);
-
-    System* createSystem(World* world, const char* name);
-    void registerSystem(World* world, System* system);
-
-    Entity* createEntity(World* world);
-    void removeEntity(World* world, Entity* entity);
-
-    void* component_getData(Component* component);
-    void component_setDataPtr(Component* component, void* ptr);
-
-    Component* setComponent(World* world, Entity* entity, int componentType);
-    void removeComponent(World* world, Entity* entity, Component* component);
-
-    ComponentGroup* createComponentGroup(System* system);
-    void addComponentDependency(System* system, ComponentGroup* componentGroup, int componentType);
-    int group_size(System* parent, ComponentGroup* componentGroup);
-    Entity* group_getEntity(System* parent, ComponentGroup* componentGroup, int index);
-    Component* group_getComponent(System* parent, ComponentGroup* componentGroup, size_t typeCode, int index);
-    
-    typedef struct string { char val[]; } string;
+    typedef struct ECSextern {
+        void* (*createWorld)();
+        int (*world_id)(void*);
+        void (*registerSystem)(World*, System*);
+        void* (*createSystem)(World*, const char*);
+        void* (*createComponentGroup)(System*);
+        void (*addComponentDependency)(System*, void*, int);
+        const Entity* (*createEntity)(World*);
+        void (*removeEntity)(World*, Entity*);
+        void (*component_setDataPtr)(Component*, void*);
+        void* (*component_getData)(Component*);
+        void* (*setComponent)(World*, Entity*, int);
+        void (*removeComponent)(World*, Entity*, Component*);
+        int (*group_size)(System*, void*);
+        Entity* (*group_getEntity)(System*, void*, int);
+        void* (*group_getComponent)(System*, void*, int, int);
+    } ECSextern;
 
     void free(void*);
 ]]
 
-local ecs = ffi.load("ECSlua")
+print(ud);
+
+local ecs = ffi.cast("struct ECSextern*", ud);
+
+print(ecs.createWorld);
+print "where's the segfault";
+-- ffi.cdef[[
+-- 	typedef struct World World;
+--     typedef struct System {
+--         World* world;
+--     } System;
+--     typedef struct ComponentGroup {
+--         System* parent;
+--     } ComponentGroup;
+--     typedef struct Component Component;
+--     typedef struct Entity Entity;
+
+--     World* createWorld();
+--     int world_id(World* world);
+
+--     System* createSystem(World* world, const char* name);
+--     void registerSystem(World* world, System* system);
+
+--     Entity* createEntity(World* world);
+--     void removeEntity(World* world, Entity* entity);
+
+--     void* component_getData(Component* component);
+--     void component_setDataPtr(Component* component, void* ptr);
+
+--     Component* setComponent(World* world, Entity* entity, int componentType);
+--     void removeComponent(World* world, Entity* entity, Component* component);
+
+--     ComponentGroup* createComponentGroup(System* system);
+--     void addComponentDependency(System* system, ComponentGroup* componentGroup, int componentType);
+--     int group_size(System* parent, ComponentGroup* componentGroup);
+--     Entity* group_getEntity(System* parent, ComponentGroup* componentGroup, int index);
+--     Component* group_getComponent(System* parent, ComponentGroup* componentGroup, size_t typeCode, int index);
+    
+--     typedef struct string { char val[]; } string;
+
+--     void free(void*);
+-- ]]
+
+-- local ecs = ffi.load("ECSlua")
 
 local C = ffi.C
 
@@ -142,17 +179,17 @@ local component_mt = {
     }
 }
 
-local string_mt = {
-    __tostring = function(v) 
-        return ffi.string(v.val)
-    end
+-- local string_mt = {
+--     __tostring = function(v) 
+--         return ffi.string(v.val)
+--     end
         
-}
+-- }
 
 ffi.metatype("World", world_mt)
 ffi.metatype("ComponentGroup", group_mt)
 ffi.metatype("Component", component_mt)
-ffi.metatype("struct string", string_mt)
+-- ffi.metatype("struct string", string_mt)
 
 function getInvertedTable(table, target)
     target = target or {}
@@ -311,4 +348,3 @@ Component = {
         return Components[self.type]
     end
 }
-

@@ -9,6 +9,9 @@ ECSLua::ECSLua(lua_State* s) : mainState(s){
     if(!mainState){
         throw std::runtime_error("Failed to initializa lua!");
     }
+
+    ecsExtern = (ECSextern*)malloc(sizeof(struct ECSextern));
+
     luaL_openlibs(mainState);
 
 	lua_getglobal(mainState, "package");
@@ -21,10 +24,15 @@ ECSLua::ECSLua(lua_State* s) : mainState(s){
 	lua_setfield(mainState, -2, "path");
 	lua_pop(mainState, 1);
 
+    //pass the ECSextern struct to lua which contains pointers to functions
+    lua_pushlightuserdata(mainState, ecsExtern);
+    lua_setglobal(mainState, "ud");
+
     instance = this;
 }
 ECSLua::~ECSLua(){
     std::cout << mainState << std::endl;
+    free(ecsExtern);
     lua_close(mainState);
 }
 
@@ -221,7 +229,7 @@ extern "C" {
         return system->getEntity(LuaSystem::voidPtrToGroup(groupPtr), index);
     }
     
-    Component* group_getComponent(LuaSystem* system, void* groupPtr, size_t typeCode, int index){
+    void* group_getComponent(LuaSystem* system, void* groupPtr, int typeCode, int index){
         return system->getComponent(LuaSystem::voidPtrToGroup(groupPtr), typeCode, index);
     }
 }

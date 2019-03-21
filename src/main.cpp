@@ -44,7 +44,7 @@ int main(int carg, char* args[]){
 			fs::addOSSlash(resDir);
 			fs::addOSSlash(libDir);
 
-#if defined (LUTHERIE_MAC)
+#if defined (LUTHERIE_MAC) || defined (__unix__)
             char newPath[strlen(path)];
             
             if(strncmp(path, "~", 1) == 0){
@@ -97,7 +97,7 @@ int main(int carg, char* args[]){
                 }
             }
 
-#else // not LUTHERIE_MAC
+#else // not LUTHERIE_MAC or __unix__
 			fs::addOSSlash(path);
 			std::string scriptsPath = std::string(path) + std::string(scriptsDir);
 			std::string resPath = std::string(path) + std::string(resDir);
