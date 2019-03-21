@@ -39,7 +39,7 @@ endif()
 
 ## ECS Library 
 
-add_library(ECS SHARED 
+add_library(ECS STATIC
     ECS/src/ECS.cpp
 )
 
@@ -53,8 +53,6 @@ target_include_directories(ECS PUBLIC ${CMAKE_BINARY_DIR} ECS/include)
 
 set_target_properties(ECS PROPERTIES 
     CXX_STANDARD 17
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libs
-    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libs
 )
 
 ## ECSlua Library

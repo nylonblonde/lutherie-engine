@@ -8,7 +8,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <string>
-#include <dirent.h>
+#ifdef LUTHERIE_MAC
+	#include <dirent.h>
+#endif
 
 namespace fs {
 
