@@ -1,21 +1,31 @@
 #include "lutherie.hpp"
 #include <chrono>
-
 using namespace ECS;
 
 //static void newState(){
 //    mainState = &luaL_newstate();
 //}
 
+#ifdef LUTHERIE_MAC
+void luaLoadCallback(ECSLua* ecs, const char* fn){
+    
+}
+#endif
+
 Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir) : projectDir(dir), scriptsDir(sDir), resourcesDir(rDir), libDir(lDir), ecs(new ECSLua(luaL_newstate())) {
     
 #ifdef LUTHERIE_MAC
-	const char* filename = "test-actual.lua";
-	char fullPath[strlen(scriptsDir) + strlen(filename)+1];
-	std::string fullPath = std::string(sDir) + std::string(filename);
-	strcpy(fullPath, scriptsDir);
-	strcat(fullPath, filename);
-	ecs->executeLua(fullPath);
+//	const char* filename = "test-actual.lua";
+//	char fullPath[strlen(scriptsDir) + strlen(filename)+1];
+	//std::string fullPath = std::string(sDir) + std::string(filename);
+//	strcpy(fullPath, scriptsDir);
+//	strcat(fullPath, filename);
+    
+    void (*f)(const char*) = &ECSLua::executeLua;
+    fs::doOnFilesInDir(scriptsDir, f);
+
+//	ecs->executeLua(fullPath);
+    
 #else
 	for (std::filesystem::directory_entry it : std::filesystem::recursive_directory_iterator(sDir)) {
 		std::cout << it.path() << std::endl;

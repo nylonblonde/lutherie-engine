@@ -34,6 +34,8 @@ lua_State* ECSLua::getState(){
 
 void ECSLua::executeLua(const char* filepath){
     
+    lua_State* mainState = ECSLua::Instance().mainState;
+    
     int result = luaL_dofile(mainState, filepath);
 
     if(result != 0) {

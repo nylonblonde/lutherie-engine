@@ -25,7 +25,7 @@ public:
 	~ECSLua();
 	ECSLua(ECSLua const&) = delete;
 	void operator=(ECSLua const&) = delete;
-    void executeLua(const char* filepath);
+    static void executeLua(const char* filepath);
     
     lua_State* getState();
     

@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <string>
+#include <dirent.h>
 
 namespace fs {
 
@@ -21,6 +22,39 @@ namespace fs {
     }
     
 #if defined (LUTHERIE_MAC)
+    
+    static void doOnFilesInDir(const char* path, void(*f)(const char*)) {
+        DIR* d;
+                
+        d = opendir(path);
+
+        if(d == NULL)
+            return;
+        
+        struct dirent* entry;
+        
+        while((entry = readdir(d)) != NULL) {
+            
+            if(entry->d_type == DT_DIR) {
+                if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                    continue;
+            }
+            
+            char newPath[strlen(path) + strlen(entry->d_name)];
+            strcpy(newPath, path);
+            strcat(newPath, entry->d_name);
+
+            if(entry->d_type == DT_REG){
+                (*f)(newPath);
+            } else if (entry->d_type == DT_DIR) {
+                doOnFilesInDir(newPath, *f);
+            }
+             
+        }
+        
+        closedir(d);
+    }
+    
     static bool pathExists(const char* path){
         struct stat info;
         
