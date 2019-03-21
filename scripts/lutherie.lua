@@ -11,70 +11,27 @@ ffi.cdef[[
     typedef struct Component Component;
     typedef struct Entity Entity;
     typedef struct ECSextern {
-        void* (*createWorld)();
+        World* (*createWorld)();
         int (*world_id)(void*);
         void (*registerSystem)(World*, System*);
-        void* (*createSystem)(World*, const char*);
-        void* (*createComponentGroup)(System*);
+        System* (*createSystem)(World*, const char*);
+        ComponentGroup* (*createComponentGroup)(System*);
         void (*addComponentDependency)(System*, void*, int);
         const Entity* (*createEntity)(World*);
         void (*removeEntity)(World*, Entity*);
         void (*component_setDataPtr)(Component*, void*);
-        void* (*component_getData)(Component*);
-        void* (*setComponent)(World*, Entity*, int);
+        Component* (*component_getData)(Component*);
+        Component* (*setComponent)(World*, Entity*, int);
         void (*removeComponent)(World*, Entity*, Component*);
         int (*group_size)(System*, void*);
         Entity* (*group_getEntity)(System*, void*, int);
-        void* (*group_getComponent)(System*, void*, int, int);
+        Component* (*group_getComponent)(System*, void*, int, int);
     } ECSextern;
 
     void free(void*);
 ]]
 
-print(ud);
-
 local ecs = ffi.cast("struct ECSextern*", ud);
-
-print(ecs.createWorld);
-print "where's the segfault";
--- ffi.cdef[[
--- 	typedef struct World World;
---     typedef struct System {
---         World* world;
---     } System;
---     typedef struct ComponentGroup {
---         System* parent;
---     } ComponentGroup;
---     typedef struct Component Component;
---     typedef struct Entity Entity;
-
---     World* createWorld();
---     int world_id(World* world);
-
---     System* createSystem(World* world, const char* name);
---     void registerSystem(World* world, System* system);
-
---     Entity* createEntity(World* world);
---     void removeEntity(World* world, Entity* entity);
-
---     void* component_getData(Component* component);
---     void component_setDataPtr(Component* component, void* ptr);
-
---     Component* setComponent(World* world, Entity* entity, int componentType);
---     void removeComponent(World* world, Entity* entity, Component* component);
-
---     ComponentGroup* createComponentGroup(System* system);
---     void addComponentDependency(System* system, ComponentGroup* componentGroup, int componentType);
---     int group_size(System* parent, ComponentGroup* componentGroup);
---     Entity* group_getEntity(System* parent, ComponentGroup* componentGroup, int index);
---     Component* group_getComponent(System* parent, ComponentGroup* componentGroup, size_t typeCode, int index);
-    
---     typedef struct string { char val[]; } string;
-
---     void free(void*);
--- ]]
-
--- local ecs = ffi.load("ECSlua")
 
 local C = ffi.C
 
@@ -131,14 +88,14 @@ local world_mt = {
             assert(type(component) == "table", "Component function must return a table value")
             assert(type(component.type) == "number", "Component has no type number")
             data = component:new()
-            data.embedded = ecs.setComponent(self, entity, component.type)
+            data.embedded = ecs.setComponent(self, ffi.cast("struct Entity*", entity), component.type)
             ecs.component_setDataPtr(data.embedded, data.self)
 --            assert(data.embedded ~= NULL, "Cannot set a component on an entity that hasn't been created or has been destroyed")
 --            print(data.embedded)
             return data
         end,
         removeComponent = function(self, entity, comp)
-            ecs.removeComponent(self, entity, comp);
+            ecs.removeComponent(self, ffi.cast("struct Entity*", entity), comp);
         end,
     }
 }

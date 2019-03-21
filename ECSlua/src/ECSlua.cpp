@@ -10,7 +10,7 @@ ECSLua::ECSLua(lua_State* s) : mainState(s){
         throw std::runtime_error("Failed to initializa lua!");
     }
 
-    ecsExtern = (ECSextern*)malloc(sizeof(struct ECSextern));
+    ecsExtern = init_ECSextern();
 
     luaL_openlibs(mainState);
 
@@ -231,6 +231,28 @@ extern "C" {
     
     void* group_getComponent(LuaSystem* system, void* groupPtr, int typeCode, int index){
         return system->getComponent(LuaSystem::voidPtrToGroup(groupPtr), typeCode, index);
-    }
+    }   
+}
+
+ECSextern* init_ECSextern() {
+    ECSextern* ecs = (ECSextern*)malloc(sizeof(struct ECSextern));
+
+    ecs->createWorld = &createWorld;
+    ecs->world_id = &world_id;
+    ecs->registerSystem = &registerSystem;
+    ecs->createSystem = &createSystem;
+    ecs->createComponentGroup = &createComponentGroup;
+    ecs->addComponentDependency = &addComponentDependency;
+    ecs->createEntity = &createEntity;
+    ecs->removeEntity = &removeEntity;
+    ecs->component_setDataPtr = &component_setDataPtr;
+    ecs->component_getData = &component_getData;
+    ecs->setComponent = &setComponent;
+    ecs->removeComponent = &removeComponent;
+    ecs->group_size = &group_size;
+    ecs->group_getEntity = &group_getEntity;
+    ecs->group_getComponent = &group_getComponent;
+
+    return ecs;
 }
 

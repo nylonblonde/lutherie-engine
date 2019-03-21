@@ -160,6 +160,9 @@ extern "C" {
         void* (*group_getComponent)(LuaSystem*, void*, int, int);
 
     } ECSextern;
+    
 }
+
+ECSextern* init_ECSextern();
 
 #endif /* ECSlua_hpp */
