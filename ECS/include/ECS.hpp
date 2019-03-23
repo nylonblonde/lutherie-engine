@@ -9,6 +9,7 @@
 #include <set>
 #include <unordered_set>
 #include <iterator>
+#include <cstring>
 
 #include "ecs_export.h"
 
