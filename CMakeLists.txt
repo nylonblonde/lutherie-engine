@@ -92,6 +92,7 @@ else() #unix/apple platforms
     set(MAKE_COMMAND make -C ${CMAKE_SOURCE_DIR}/libs/luajit)
     set(LUAJIT_EXE luajit)
 	set(OUTPUT_FILES  ${CMAKE_BINARY_DIR}/luajit/bin/${LUAJIT_EXE})
+    set(LUAJIT_PREFIX PREFIX=${CMAKE_BINARY_DIR}/luajit)
 
 	if(APPLE)
         set(ENVIRONMENT_COMMAND export MACOSX_DEPLOYMENT_TARGET=$ENV{MACOSX_DEPLOYMENT_TARGET} &&)
@@ -106,8 +107,6 @@ else() #unix/apple platforms
 endif() #platforms
 
 file(GLOB LUAJIT_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/libs/luajit/src/*.c)
-
-set(LUAJIT_PREFIX PREFIX=${CMAKE_BINARY_DIR}/luajit)
 
 add_custom_command(OUTPUT ${OUTPUT_FILES}
     COMMAND ${OUTPUT_COMMAND}
