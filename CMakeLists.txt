@@ -40,7 +40,7 @@ find_package(Vulkan)
 #    set(LUA_INCLUDE_DIRS /usr/local/include CACHE PATH "")
 # endif()
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/static)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libs/static)
 
 ##################
 ##              ##
