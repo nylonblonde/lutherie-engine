@@ -5,7 +5,7 @@ ECSLua::ECSLua(){}
 
 ECSLua* ECSLua::instance = nullptr;
 
-ECSLua::ECSLua(lua_State* s) : mainState(s){
+ECSLua::ECSLua(lua_State* s, const char* d) : mainState(s), dir(d){
     if(!mainState){
         throw std::runtime_error("Failed to initializa lua!");
     }
@@ -19,12 +19,16 @@ ECSLua::ECSLua(lua_State* s) : mainState(s){
 	luaL_Buffer b;
 	luaL_buffinit(mainState, &b);
 	luaL_addvalue(&b);
-	luaL_addstring(&b, ";./libs/lua/?.raw;;");
+    char* luaPath = (char*)malloc(strlen(dir)+24);
+    strcpy(luaPath, ";./");
+    strcat(luaPath, dir);
+    strcat(luaPath, "/libs/lua/?.raw;;");
+	luaL_addstring(&b, luaPath);
 	luaL_pushresult(&b);
 	lua_setfield(mainState, -2, "path");
 	lua_pop(mainState, 1);
-
-    //pass the ECSextern struct to lua which contains pointers to functions
+    free(luaPath);
+    //pass the ECSextern struct to lua which contains the pointers to functions
     lua_pushlightuserdata(mainState, ecsExtern);
     lua_setglobal(mainState, "ud");
 
@@ -60,7 +64,7 @@ void printLuaError(lua_State* state) {
 
 ECSLua& ECSLua::Instance(){
     if(instance == nullptr){
-        instance = new ECSLua(luaL_newstate());
+        throw std::runtime_error("ECSLua singleton returned null! Do not call Instance() before it ever gets set");
     }
     return *instance;
 }

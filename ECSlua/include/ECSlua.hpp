@@ -21,13 +21,14 @@ private:
 public:
     static ECSLua& Instance();
     
-	ECSLua(lua_State* s);
+	ECSLua(lua_State* s, const char* dir);
 	~ECSLua();
 	ECSLua(ECSLua const&) = delete;
 	void operator=(ECSLua const&) = delete;
     static void executeLua(const char* filepath);
     void* ecsExtern;
     lua_State* getState();
+    const char* dir;
     
 };
 

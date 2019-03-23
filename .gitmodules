@@ -1,0 +1,6 @@
+[submodule "libs/glfw"]
+	path = libs/glfw
+	url = https://github.com/glfw/glfw
+[submodule "libs/luajit"]
+	path = libs/luajit
+	url = http://luajit.org/git/luajit-2.0.git

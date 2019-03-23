@@ -12,7 +12,7 @@ void luaLoadCallback(ECSLua* ecs, const char* fn){
 }
 #endif
 
-Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir) : projectDir(dir), scriptsDir(sDir), resourcesDir(rDir), libDir(lDir), ecs(new ECSLua(luaL_newstate())) {
+Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir) : projectDir(dir), scriptsDir(sDir), resourcesDir(rDir), libDir(lDir), ecs(new ECSLua(luaL_newstate(), dir)) {
     
 #if defined(LUTHERIE_MAC) || defined(__unix__)
 //	const char* filename = "test-actual.lua";

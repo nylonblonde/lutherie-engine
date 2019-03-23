@@ -25,6 +25,8 @@ public:
 
 int main(int carg, char* args[]){
     
+    std::cout << args[0] << std::endl;
+    
     if(carg < 2){
         std::cout << "Usage: Lutherie [options [args]]" << std::endl;
         std::cout << "Available options:" << std::endl;
@@ -81,8 +83,6 @@ int main(int carg, char* args[]){
                     strcat(resPath, resDir);
                     strcat(libPath, libDir);
                     
-                    //TODO: copy default libraries to project's library directory. Change addSubdirectory to return int so we can detect if directory was created or existed
-
 //                     World& world = World::createWorld<MySystem>();
 
 //                    auto start = std::chrono::high_resolution_clock::now();
@@ -93,7 +93,18 @@ int main(int carg, char* args[]){
 //                    auto end = std::chrono::high_resolution_clock::now();
 //                    double duration = std::chrono::duration_cast<std::chrono::duration<double>>(end-start).count();
 //                    std::cout << "C++ elapsed: " << duration << std::endl;
-                    Lutherie lutherie = Lutherie(path, scriptsPath, resPath, libPath);
+                    
+                    char exeDir[strlen(args[0])];
+                    strcpy(exeDir, args[0]);
+                    
+                    for(int c = strlen(args[0]); c > 0; c--){
+                        if(exeDir[c] == '/'){
+                            exeDir[c+1] = 0;
+                            break;
+                        }
+                    }
+                    
+                    Lutherie lutherie = Lutherie(exeDir, scriptsPath, resPath, libPath);
                 }
             }
 
@@ -110,7 +121,15 @@ int main(int carg, char* args[]){
 			std::cout << scriptsPath << std::endl << resPath << std::endl << libPath << std::endl;
 			if (std::filesystem::exists(scriptsPath) &&	std::filesystem::exists(resPath) &&	std::filesystem::exists(libPath)) {
 				
-				Lutherie lutherie = Lutherie(path, scriptsPath.c_str(), resPath.c_str(), libPath.c_str());
+                std::string exeDir = std::string(args[0]);
+                
+            #if defined(_WIN32) || defined(_WIN64)
+                exeDir.erase(path.find_last_of('\\'), string::string::npos);
+            #else
+                exeDir.erase(path.find_last_of('/'), string::string::npos);
+            #endif
+                
+				Lutherie lutherie = Lutherie(exeDir, scriptsPath.c_str(), resPath.c_str(), libPath.c_str());
 			}
 			
 #endif
