@@ -35,7 +35,6 @@ ECSLua::ECSLua(lua_State* s, const char* d) : mainState(s), dir(d){
     instance = this;
 }
 ECSLua::~ECSLua(){
-    std::cout << mainState << std::endl;
     free(ecsExtern);
     lua_close(mainState);
 }
@@ -159,7 +158,7 @@ System::ComponentGroup* LuaSystem::voidPtrToGroup(void* ptr) {
 }
 
 int LuaSystem::getGroupSize(System::ComponentGroup* cg) {
-    return cg->size();
+    return static_cast<int>(cg->size());
 }
 
 const Entity* LuaSystem::getEntity(System::ComponentGroup* cg, int index){

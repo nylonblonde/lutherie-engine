@@ -2,29 +2,12 @@
 #include <chrono>
 using namespace ECS;
 
-//static void newState(){
-//    mainState = &luaL_newstate();
-//}
-
-#ifdef LUTHERIE_MAC
-void luaLoadCallback(ECSLua* ecs, const char* fn){
-    
-}
-#endif
-
 Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir) : projectDir(dir), scriptsDir(sDir), resourcesDir(rDir), libDir(lDir), ecs(new ECSLua(luaL_newstate(), dir)) {
     
 #if defined(LUTHERIE_MAC) || defined(__unix__)
-//	const char* filename = "test-actual.lua";
-//	char fullPath[strlen(scriptsDir) + strlen(filename)+1];
-	//std::string fullPath = std::string(sDir) + std::string(filename);
-//	strcpy(fullPath, scriptsDir);
-//	strcat(fullPath, filename);
     
     void (*f)(const char*) = &ECSLua::executeLua;
     fs::doOnFilesInDir(scriptsDir, f);
-
-//	ecs->executeLua(fullPath);
     
 #else
 	for (std::filesystem::directory_entry it : std::filesystem::recursive_directory_iterator(sDir)) {
@@ -32,18 +15,19 @@ Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const ch
 		ecs->executeLua(it.path().string().c_str());
 	}
 #endif
+
     initWindow();
     mainLoop();
 }
 
 Lutherie::Lutherie() {}
-Lutherie::~Lutherie(){
-	delete ecs;
-}
 
-Lutherie& Lutherie::Instance(){
-    static Lutherie instance;
-    return instance;
+Lutherie::~Lutherie(){
+
+	delete ecs;
+
+	glfwDestroyWindow(window);
+	glfwTerminate();
 }
 
 void Lutherie::initWindow(){
@@ -74,8 +58,7 @@ void Lutherie::mainLoop(){
         World::updateActive(World::allWorlds);
         auto end = std::chrono::high_resolution_clock::now();
         double duration = std::chrono::duration_cast<std::chrono::duration<double>>(end-start).count();
-//        std::cout << duration << std::endl;
-//        UpdateActiveSystems();
+
     }
 }
 

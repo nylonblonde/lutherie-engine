@@ -17,9 +17,12 @@
 
 #include <ECSlua.hpp>
 #include "fs.h"
-#if not defined(LUTHERIE_MAC) && not defined(unix)
+
+#if defined(_WIN32) || defined(_WIN64)
     #include <filesystem>
 #endif
+
+#include<string>
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -45,11 +48,7 @@ public:
 
         return true;
     }
-    
-    static Lutherie& Instance();
-    Lutherie(Lutherie const&) = delete;
-    void operator=(Lutherie const&) = delete;
-        
+            
     Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir);
     ~Lutherie();
     

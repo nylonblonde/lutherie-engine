@@ -38,9 +38,17 @@ int main(int carg, char* args[]){
         if(strcmp(args[i], "-o") == 0 || strcmp(args[i], "--open") == 0){
 			char* path = args[i + 1];
 
-			char scriptsDir[9] = "scripts";
-			char resDir[11] = "resources";
-			char libDir[6] = "libs";
+			char scriptsDir[10] = "";
+			char resDir[12] = "";
+			char libDir[7] = "";
+
+			fs::addOSSlash(scriptsDir);
+			fs::addOSSlash(resDir);
+			fs::addOSSlash(libDir);
+
+			strcat(scriptsDir, "scripts");
+			strcat(resDir, "resources");
+			strcat(libDir, "libs");
 
 			fs::addOSSlash(scriptsDir);
 			fs::addOSSlash(resDir);
@@ -109,7 +117,6 @@ int main(int carg, char* args[]){
             }
 
 #else // not LUTHERIE_MAC or __unix__
-			fs::addOSSlash(path);
 			std::string scriptsPath = std::string(path) + std::string(scriptsDir);
 			std::string resPath = std::string(path) + std::string(resDir);
 			std::string libPath = std::string(path) + std::string(libDir);
@@ -124,12 +131,17 @@ int main(int carg, char* args[]){
                 std::string exeDir = std::string(args[0]);
                 
             #if defined(_WIN32) || defined(_WIN64)
-                exeDir.erase(path.find_last_of('\\'), string::string::npos);
+				if (exeDir.find_last_of('\\') != std::string::npos) {
+					exeDir = exeDir.substr(0, exeDir.find_last_of('\\'));
+				}
+				else {
+					exeDir = "";
+				}
             #else
-                exeDir.erase(path.find_last_of('/'), string::string::npos);
+                exeDir.erase(exeDir.find_last_of('/'), std::string::npos);
             #endif
                 
-				Lutherie lutherie = Lutherie(exeDir, scriptsPath.c_str(), resPath.c_str(), libPath.c_str());
+				Lutherie lutherie = Lutherie(exeDir.c_str(), scriptsPath.c_str(), resPath.c_str(), libPath.c_str());
 			}
 			
 #endif

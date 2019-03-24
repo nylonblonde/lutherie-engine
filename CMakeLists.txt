@@ -23,22 +23,9 @@ if(APPLE)
     endif()
 endif()
 
-# find_package(PkgConfig)
-
 include(GenerateExportHeader)
 
-# if(PkgConfig_FOUND)
-#    pkg_check_modules(GLFW glfw3)
-#    pkg_check_modules(LUA luajit)   
-# endif()
-
 find_package(Vulkan)
-
-# if(NOT LUA_FOUND)
-#    set(LUA_LIBRARIES luajit CACHE STRING "")
-#    set(LUA_LIBRARY_DIRS /usr/local/lib CACHE PATH "")
-#    set(LUA_INCLUDE_DIRS /usr/local/include CACHE PATH "")
-# endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libs/static)
 
@@ -78,31 +65,54 @@ if(APPLE)
     endif()
 endif()
 
-if(WIN32 OR WIN64)
+if(WIN32 OR WIN64) #win32 or win64 platforms
     set(MAKE_COMMAND ${CMAKE_SOURCE_DIR}/libs/luajit/src/msvcbuild)
     set(LUAJIT_EXE luajit.exe)
-else()
+	set(OUTPUT_FILES  ${CMAKE_BINARY_DIR}/luajit/bin/${LUAJIT_EXE})
+
+	set(OUTPUT_COMMAND 
+		setlocal && 
+		cd ${CMAKE_SOURCE_DIR}/libs/luajit/src/ &&
+		${MAKE_COMMAND} && 
+		endlocal &&
+		echo endlocal &&
+		${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/luajit/bin/lua/jit &&
+		echo "made directory bin/lua/jit" &&
+		${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/libs/luajit/src/jit ${CMAKE_BINARY_DIR}/luajit/bin/lua/jit &&
+		echo "copied src/jit to lua/jit" &&
+		# ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/luajit/lib &&
+		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/libs/luajit/src/${LUAJIT_EXE} ${CMAKE_BINARY_DIR}/luajit/bin/ &&
+		echo "copied executable" &&
+		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/libs/luajit/src/lua51.lib ${CMAKE_BINARY_DIR}/luajit/bin && 
+		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/libs/luajit/src/lua51.dll ${CMAKE_BINARY_DIR}/luajit/bin && 
+		echo "copied libraries"
+	)
+
+else() #unix/apple platforms
     set(MAKE_COMMAND make -C ${CMAKE_SOURCE_DIR}/libs/luajit)
     set(LUAJIT_EXE luajit)
-endif()
+	set(OUTPUT_FILES  ${CMAKE_BINARY_DIR}/luajit/bin/${LUAJIT_EXE})
+
+	if(APPLE)
+        set(ENVIRONMENT_COMMAND export MACOSX_DEPLOYMENT_TARGET=$ENV{MACOSX_DEPLOYMENT_TARGET} &&)
+    endif()
+
+	set(OUTPUT_COMMAND 
+		${ENVIRONMENT_COMMAND}
+        ${MAKE_COMMAND} ${LUAJIT_PREFIX}
+        && ${MAKE_COMMAND} install ${LUAJIT_PREFIX}
+	)
+
+endif() #platforms
 
 file(GLOB LUAJIT_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/libs/luajit/src/*.c)
 
 set(LUAJIT_PREFIX PREFIX=${CMAKE_BINARY_DIR}/luajit)
 
-if(WIN32 OR WIN64)
-
-else()
-    if(APPLE)
-        set(ENVIRONMENT_COMMAND export MACOSX_DEPLOYMENT_TARGET=$ENV{MACOSX_DEPLOYMENT_TARGET} &&)
-    endif()
-    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/luajit/bin/${LUAJIT_EXE}
-        COMMAND ${ENVIRONMENT_COMMAND}
-        ${MAKE_COMMAND} ${LUAJIT_PREFIX}
-        && ${MAKE_COMMAND} install ${LUAJIT_PREFIX}
-        DEPENDS ${LUAJIT_SRC}
-    )
-endif()
+add_custom_command(OUTPUT ${OUTPUT_FILES}
+    COMMAND ${OUTPUT_COMMAND}
+    DEPENDS ${LUAJIT_SRC}
+)
 
 add_custom_target(luaJIT ALL DEPENDS ${CMAKE_BINARY_DIR}/luajit/bin/${LUAJIT_EXE})
 
@@ -110,8 +120,6 @@ add_custom_target(luaJIT ALL DEPENDS ${CMAKE_BINARY_DIR}/luajit/bin/${LUAJIT_EXE
 #    COMMAND ${CMAKE_COMMAND} ARGS -E copy ${CMAKE_SOURCE_DIR}/libs/luajit/src/${LUAJIT_EXE} ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bin/
 #    DEPENDS ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bin/${LUAJIT_EXE}
 # )
-
-
 
 ##################
 ##              ##
@@ -142,11 +150,6 @@ set_target_properties(ECSlua PROPERTIES
 ##    GLFW      ##
 ##              ##
 ##################
-
-# if(APPLE)
-    #message(VULKAN ${VULKAN_INCLUDE_DIR})
-    #set(VULKAN_STATIC_LIBRARY ${VULKAN_INCLUDE_DIR}/../../MoltenVK/macOS/static/libMoltenVK.a)
-# endif()
 
 set(GLFW_BUILD_DOCS off)
 add_subdirectory(libs/glfw ${CMAKE_BINARY_DIR}/glfw)
@@ -187,7 +190,7 @@ if(APPLE)
 endif()
 
 if(WIN32 OR WIN64)
-    set(LUAJIT_LIB ${CMAKE_BINARY_DIR}/luajit/lib/lua51.lib)
+    set(LUAJIT_LIB ${CMAKE_BINARY_DIR}/luajit/bin/lua51.lib)
 else()
     set(LUAJIT_LIB ${CMAKE_BINARY_DIR}/luajit/lib/libluajit-5.1.a)
 endif()
@@ -200,7 +203,7 @@ set(LIB_LUA_DIR libs/lua)
 
 function(add_lua_file LUA_NAME)
     add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${LIB_LUA_DIR}/${LUA_NAME}.raw 
-        COMMAND luajit ARGS -b ${CMAKE_SOURCE_DIR}/scripts/${LUA_NAME}.lua ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${LIB_LUA_DIR}/${LUA_NAME}.raw
+        COMMAND ${CMAKE_BINARY_DIR}/luajit/bin/luajit ARGS -b ${CMAKE_SOURCE_DIR}/scripts/${LUA_NAME}.lua ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${LIB_LUA_DIR}/${LUA_NAME}.raw
         DEPENDS ${CMAKE_SOURCE_DIR}/scripts/${LUA_NAME}.lua)
     add_custom_target(${LUA_NAME}.lua ALL DEPENDS ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${LIB_LUA_DIR}/${LUA_NAME}.raw)
     add_dependencies(${LUA_NAME}.lua lutherie)
