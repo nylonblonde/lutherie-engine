@@ -32,7 +32,7 @@ public:
     
 };
 
-class LuaComponent : public Component {
+class LuaComponent : public ECS::Component {
 private:
     const size_t type;
     void* data = nullptr;
@@ -97,7 +97,7 @@ public:
     void addDependency(void* cg, size_t componentType);
     int getGroupSize(System::ComponentGroup* cg);
     const Entity* getEntity(System::ComponentGroup* cg, int index);
-    Component* getComponent(System::ComponentGroup* cg, size_t typeCode, int index);
+    ECS::Component* getComponent(System::ComponentGroup* cg, size_t typeCode, int index);
     
     virtual void OnUpdate();
     virtual void OnActive();

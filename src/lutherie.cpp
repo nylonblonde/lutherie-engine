@@ -1,6 +1,6 @@
 #include "lutherie.hpp"
 #include <chrono>
-using namespace ECS;
+//using namespace ECS;
 
 Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir) : projectDir(dir), scriptsDir(sDir), resourcesDir(rDir), libDir(lDir), ecs(new ECSLua(luaL_newstate(), dir)) {
     

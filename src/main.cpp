@@ -1,44 +1,72 @@
 #define LUTHERIE_VULKAN
 
+#if defined(LUTHERIE_MAC)
+    #include <Cocoa/Cocoa.h>
+#endif
+
 #include "lutherie.hpp"
 
-using namespace ECS;
+#if defined(LUTHERIE_MAC)
+    #include <unistd.h>
+#endif
 
-struct MyComponent : Component {
-    int Value;
-};
-
-class MySystem : public System {
-
-public:
-    ComponentGroup group = ComponentGroup::createComponentGroup<MyComponent>(*this);
-
-    MySystem(World& w) : System(w) {
-        
-    }
-    
-    virtual void OnUpdate(){
-//        std::cout << group.size() << std::endl;
-    }
-    
-};
+enum option {closeApp=0, openProj=1};
 
 int main(int carg, char* args[]){
     
     std::cout << args[0] << std::endl;
+    char* path = 0;
+    
+    option opt = option::closeApp;
     
     if(carg < 2){
-        std::cout << "Usage: Lutherie [options [args]]" << std::endl;
-        std::cout << "Available options:" << std::endl;
-        std::cout << "-o | --open   <path-to-project>   Opens a Lutherie project at path destination or creates one if directory doesn't contain one" << std::endl;
-        return 0;
+        
+        bool gui = false;
+        
+    #if defined(LUTHERIE_MAC)
+        gui = (isatty(0) == 0);    
+    #endif
+        
+        if(gui){
+            NSOpenPanel *op = [NSOpenPanel openPanel];
+            [op setCanChooseDirectories:YES];
+            [op setCanChooseFiles:NO];
+            [op setAllowsMultipleSelection:NO];
+            [op setResolvesAliases:NO];
+            [op setCanCreateDirectories:YES];
+            [op setPrompt:@"Open Project Directory"];
+
+            if ([op runModal] == NSModalResponseOK) {
+                NSURL *nsurl = [[op URLs] objectAtIndex:0];
+                path = const_cast<char*>(std::string([[nsurl path] UTF8String]).c_str());
+            }
+
+            opt = option::openProj;
+            
+        }else{
+            std::cout << "Usage: lutherie [options [arg]]" << std::endl;
+            std::cout << "Available options:" << std::endl;
+            std::cout << "-o | --open   <path-to-project>   Opens a Lutherie project at path destination or creates one if directory doesn't contain one" << std::endl;
+            return 0;
+        }
     }
     
     for(int i = 1; i < carg; i+=2){
         if(strcmp(args[i], "-o") == 0 || strcmp(args[i], "--open") == 0){
-			char* path = args[i + 1];
+			path = args[i + 1];
 
-			char scriptsDir[10] = "";
+            opt = option::openProj;
+            break;
+        }
+    }
+    
+    switch(opt)
+    {
+        case option::closeApp :
+            return 0;
+        case option::openProj :
+            
+            char scriptsDir[10] = "";
 			char resDir[12] = "";
 			char libDir[7] = "";
 
@@ -53,7 +81,7 @@ int main(int carg, char* args[]){
 			fs::addOSSlash(scriptsDir);
 			fs::addOSSlash(resDir);
 			fs::addOSSlash(libDir);
-
+            
 #if defined (LUTHERIE_MAC) || defined (__unix__)
             char newPath[strlen(path)];
             
@@ -146,11 +174,8 @@ int main(int carg, char* args[]){
 			
 #endif
 			
-            return 0;
+            break;
         }
-    }
 
-    
-    
     return 0;
 }

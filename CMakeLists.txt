@@ -150,8 +150,9 @@ set_target_properties(ECSlua PROPERTIES
 ##              ##
 ##################
 
+
 set(GLFW_BUILD_DOCS off)
-add_subdirectory(libs/glfw ${CMAKE_BINARY_DIR}/glfw)
+add_subdirectory(libs/glfw ${CMAKE_BINARY_DIR}/glfw EXCLUDE_FROM_ALL)
 
 add_custom_target(staticLibs)
 add_dependencies(staticLibs glfw)
@@ -164,14 +165,20 @@ add_dependencies(staticLibs glfw)
 
 set(SOURCES src/lutherie.cpp src/main.cpp)
 
-add_executable(lutherie ${SOURCES})
+add_executable(lutherie ${SOURCES} ${CMAKE_SOURCE_DIR}/Info.plist)
 add_dependencies(lutherie staticLibs)
 
 set(LINK_LIBS ${GLFW_LIBRARIES} ECSlua glfw)
 
-target_link_directories(lutherie PUBLIC ${CMAKE_SOURCE_DIR}/libs/static)
+target_link_directories(lutherie PUBLIC ${CMAKE_BINARY_DIR}/libs/static)
 
 target_include_directories(lutherie PUBLIC ECSlua/include include ${CMAKE_SOURCE_DIR}/libs/glfw/include ${CMAKE_BINARY_DIR}/luajit/include ${Vulkan_INCLUDE_DIRS})
+
+if(APPLE)
+    set(RUNTIME_OUTPUT ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/Lutherie.app/Contents/MacOS)
+else()
+    set(RUNTIME_OUTPUT ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+endif()
 
 set_target_properties(lutherie PROPERTIES 
 	CXX_STANDARD 17
@@ -183,7 +190,8 @@ if(WIN32)
 endif()
 
 if(APPLE)
-    add_definitions(-DLUTHERIE_MAC)
+    add_definitions(-DLUTHERIE_MAC "-x objective-c++")
+    set_target_properties(lutherie PROPERTIES MACOSX_BUNDLE TRUE MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/Info.plist)
     target_link_options(lutherie PUBLIC "-pagezero_size 10000 -image_base 100000000")
     target_link_libraries(lutherie ${COCOA_LIB} ${IOKIT_LIB} ${COREFOUNDATION_LIB} ${COREVIDEO_LIB})
 endif()
@@ -196,16 +204,28 @@ endif()
 
 target_link_libraries(lutherie ${LINK_LIBS} ${LUAJIT_LIB})
 
-add_custom_command(TARGET ECS PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/libs/lua)
+add_custom_command(TARGET lutherie POST_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${RUNTIME_OUTPUT}/libs/lua)
 
 set(LIB_LUA_DIR libs/lua)
 
 function(add_lua_file LUA_NAME)
-    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${LIB_LUA_DIR}/${LUA_NAME}.raw 
-        COMMAND ${CMAKE_BINARY_DIR}/luajit/bin/luajit ARGS -b ${CMAKE_SOURCE_DIR}/scripts/${LUA_NAME}.lua ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${LIB_LUA_DIR}/${LUA_NAME}.raw
+    add_custom_command(OUTPUT ${RUNTIME_OUTPUT}/${LIB_LUA_DIR}/${LUA_NAME}.raw 
+        COMMAND ${CMAKE_BINARY_DIR}/luajit/bin/luajit ARGS -b ${CMAKE_SOURCE_DIR}/scripts/${LUA_NAME}.lua ${RUNTIME_OUTPUT}/${LIB_LUA_DIR}/${LUA_NAME}.raw
         DEPENDS ${CMAKE_SOURCE_DIR}/scripts/${LUA_NAME}.lua)
-    add_custom_target(${LUA_NAME}.lua ALL DEPENDS ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${LIB_LUA_DIR}/${LUA_NAME}.raw)
-    add_dependencies(${LUA_NAME}.lua lutherie)
+    add_custom_target(${LUA_NAME}.raw ALL DEPENDS ${RUNTIME_OUTPUT}/${LIB_LUA_DIR}/${LUA_NAME}.raw)
+    
+    add_dependencies(${LUA_NAME}.raw lutherie)
 endfunction()
 
 add_lua_file(lutherie)
+
+# if(APPLE)
+#    install(DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${LIB_LUA_DIR}/
+#        DESTINATION ${RUNTIME_OUTPUT}/libs/lua
+#    )
+#    install(CODE "
+#            include(BundleUtilities)
+#            verify_app(${CMAKE_BINARY_DIR}/Lutherie.app)
+#        "
+#    )
+# endif()

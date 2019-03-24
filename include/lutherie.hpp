@@ -27,7 +27,7 @@
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
-using namespace ECS;
+//using namespace ECS;
 
 class Lutherie {
 public:
