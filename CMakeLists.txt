@@ -186,6 +186,8 @@ set_target_properties(lutherie PROPERTIES
 )
 
 if(WIN32)
+	# set_target_properties(lutherie PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
+	# target_link_options(lutherie PUBLIC "/entry:mainCRTStartup")
     add_definitions(-DNODEFAULTLIB:library -D_CRT_SECURE_NO_WARNINGS)
 endif()
 

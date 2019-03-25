@@ -20,7 +20,11 @@ ECSLua::ECSLua(lua_State* s, const char* d) : mainState(s), dir(d){
 	luaL_buffinit(mainState, &b);
 	luaL_addvalue(&b);
     char* luaPath = (char*)malloc(strlen(dir)+24);
-    strcpy(luaPath, ";./");
+	strcpy(luaPath, ";");
+	if (strlen(dir) == 0) {
+		strcpy(luaPath, "./");
+	}
+	std::cout << dir << std::endl;
     strcat(luaPath, dir);
     strcat(luaPath, "/libs/lua/?.raw;;");
 	luaL_addstring(&b, luaPath);
