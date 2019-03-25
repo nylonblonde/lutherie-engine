@@ -1,19 +1,20 @@
 #define LUTHERIE_VULKAN
 
 #if defined(LUTHERIE_MAC)
-#include <Cocoa/Cocoa.h>
-#include <unistd.h>
+    #include <Cocoa/Cocoa.h>
+    #include <unistd.h>
 #elif defined(_WIN32) || defined(_WIN64)
-//#include<io.h>
-#include <shobjidl.h>
+    #include <shobjidl.h>
 #endif
 
-#include "lutherie.hpp"
+#include<stdio.h>
+
+#include <lutherie.hpp>
 
 enum option { closeApp = 0, openProj = 1 };
 
 int main(int carg, char* args[]) {
-
+    
 	std::cout << args[0] << std::endl;
 	char* path = 0;
 
@@ -25,13 +26,11 @@ int main(int carg, char* args[]) {
 			i++;
 		}
 
-
 		bool tty = false;
 		if (i < carg) {
 			tty = strcmp(args[i], "-t") == 0 || strcmp(args[i], "--tty") == 0;
 		}
 		if (carg < 2 || tty) {
-			std::cout << carg << std::endl;
 
 			bool gui = i > 0 && tty;
 
@@ -57,10 +56,12 @@ int main(int carg, char* args[]) {
 					[op setCanCreateDirectories : YES];
 					[op setPrompt : @"Open Project Directory"];
 
-						if ([op runModal] == NSModalResponseOK) {
-							NSURL *nsurl = [[op URLs] objectAtIndex:0];
-							path = const_cast<char*>(std::string([[nsurl path] UTF8String]).c_str());
-						}
+                    if ([op runModal] == NSModalResponseOK) {
+                        NSURL *nsurl = [[op URLs] objectAtIndex:0];
+                        path = new char[strlen([[nsurl path] UTF8String])];
+                        strcpy(path, [[nsurl path] UTF8String]);
+                        opt = option::openProj;
+                    }
 				#elif defined(_WIN32) || defined(_WIN64)
 
 					HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
@@ -95,6 +96,9 @@ int main(int carg, char* args[]) {
 					}
 					CoUninitialize();
 				#endif
+                    
+                    
+                    
 					continue;
 				}
 			} else { // gui
@@ -104,6 +108,10 @@ int main(int carg, char* args[]) {
 				std::cout << "-t | --tty	Runs the GUI version of the Lutherie Engine from the command line" << std::endl;
 				return 0;
 			}
+            
+            if (tty) {
+                i--;
+            }
 		}
 
 		if (strcmp(args[i], "-o") == 0 || strcmp(args[i], "--open") == 0) {
@@ -120,11 +128,10 @@ int main(int carg, char* args[]) {
 			}
 		}
 
-		if (tty) {
-			i--;
-		}
+		
 	} //for loop
 
+    
 	switch (opt)
 	{
 	case option::closeApp:
@@ -155,7 +162,6 @@ int main(int carg, char* args[]) {
 			strcat(newPath, &path[1]);
 
 			path = newPath;
-
 		}
 
 		std::cout << path << std::endl;

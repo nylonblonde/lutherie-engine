@@ -43,7 +43,7 @@ generate_export_header(ECS
 	STATIC_DEFINE SHARED_EXPORTS_BUILT_AS_STATIC
 )
 
-add_custom_command(TARGET ECS PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/libs)
+# add_custom_command(TARGET ECS PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/libs)
 
 target_include_directories(ECS PUBLIC ${CMAKE_BINARY_DIR} ECS/include)
 
@@ -150,7 +150,6 @@ set_target_properties(ECSlua PROPERTIES
 ##              ##
 ##################
 
-
 set(GLFW_BUILD_DOCS off)
 add_subdirectory(libs/glfw ${CMAKE_BINARY_DIR}/glfw EXCLUDE_FROM_ALL)
 
@@ -159,26 +158,48 @@ add_dependencies(staticLibs glfw)
 
 ##################
 ##              ##
-##  Lutherie    ##
+##   Lutherie   ##
 ##              ##
 ##################
 
-set(SOURCES src/lutherie.cpp src/main.cpp)
-
-add_executable(lutherie ${SOURCES} ${CMAKE_SOURCE_DIR}/Info.plist)
-add_dependencies(lutherie staticLibs)
-
-set(LINK_LIBS ${GLFW_LIBRARIES} ECSlua glfw)
-
-target_link_directories(lutherie PUBLIC ${CMAKE_BINARY_DIR}/libs/static)
-
-target_include_directories(lutherie PUBLIC ECSlua/include include ${CMAKE_SOURCE_DIR}/libs/glfw/include ${CMAKE_BINARY_DIR}/luajit/include ${Vulkan_INCLUDE_DIRS})
+set(SOURCES src/lutherie.cpp)
 
 if(APPLE)
     set(RUNTIME_OUTPUT ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/Lutherie.app/Contents/MacOS)
 else()
     set(RUNTIME_OUTPUT ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
 endif()
+
+add_library(lutherielib STATIC ${SOURCES})
+add_dependencies(lutherielib staticLibs)
+
+set_target_properties(lutherielib PROPERTIES 
+	CXX_STANDARD 17
+    OUTPUT_NAME lutherie
+    ARCHIVE_OUTPUT_DIRECTORY ${RUNTIME_OUTPUT}/libs/static
+)
+
+set(LINK_LIBS ${GLFW_LIBRARIES} ECSlua glfw)
+
+target_link_directories(lutherielib PUBLIC ${CMAKE_BINARY_DIR}/libs/static)
+
+target_include_directories(lutherielib PUBLIC ECSlua/include ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/libs/glfw/include ${CMAKE_BINARY_DIR}/luajit/include ${Vulkan_INCLUDE_DIRS})
+
+if(WIN32 OR WIN64)
+    set(LUAJIT_LIB ${CMAKE_BINARY_DIR}/luajit/bin/lua51.lib)
+else()
+    set(LUAJIT_LIB ${CMAKE_BINARY_DIR}/luajit/lib/libluajit-5.1.a)
+endif()
+
+target_link_libraries(lutherielib ${LINK_LIBS} ${LUAJIT_LIB})
+
+##################
+##              ##
+##   Launcher   ##
+##              ##
+##################
+
+add_executable(lutherie src/main.cpp)
 
 set_target_properties(lutherie PROPERTIES 
 	CXX_STANDARD 17
@@ -193,20 +214,25 @@ endif()
 
 if(APPLE)
     add_definitions(-DLUTHERIE_MAC "-x objective-c++")
-    set_target_properties(lutherie PROPERTIES MACOSX_BUNDLE TRUE MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/Info.plist)
+    set_target_properties(lutherie PROPERTIES 
+        MACOSX_BUNDLE TRUE 
+        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/Info.plist
+    )
     target_link_options(lutherie PUBLIC "-pagezero_size 10000 -image_base 100000000")
     target_link_libraries(lutherie ${COCOA_LIB} ${IOKIT_LIB} ${COREFOUNDATION_LIB} ${COREVIDEO_LIB})
 endif()
 
-if(WIN32 OR WIN64)
-    set(LUAJIT_LIB ${CMAKE_BINARY_DIR}/luajit/bin/lua51.lib)
-else()
-    set(LUAJIT_LIB ${CMAKE_BINARY_DIR}/luajit/lib/libluajit-5.1.a)
-endif()
+target_link_directories(lutherie PUBLIC ${CMAKE_BINARY_DIR}/libs/static)
+target_link_libraries(lutherie lutherielib)
+target_include_directories(lutherie PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
-target_link_libraries(lutherie ${LINK_LIBS} ${LUAJIT_LIB})
+##################
+##              ##
+##  Lua files   ##
+##              ##
+##################
 
-add_custom_command(TARGET lutherie POST_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${RUNTIME_OUTPUT}/libs/lua)
+add_custom_command(TARGET lutherielib POST_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${RUNTIME_OUTPUT}/libs/lua)
 
 set(LIB_LUA_DIR libs/lua)
 
@@ -220,14 +246,3 @@ function(add_lua_file LUA_NAME)
 endfunction()
 
 add_lua_file(lutherie)
-
-# if(APPLE)
-#    install(DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${LIB_LUA_DIR}/
-#        DESTINATION ${RUNTIME_OUTPUT}/libs/lua
-#    )
-#    install(CODE "
-#            include(BundleUtilities)
-#            verify_app(${CMAKE_BINARY_DIR}/Lutherie.app)
-#        "
-#    )
-# endif()
