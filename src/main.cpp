@@ -32,6 +32,37 @@ const char* getStringFromGlobal(lua_State* state, const char* global){
     return retVal;
 }
 
+class CompileLua{
+private:
+    static CompileLua* instance;
+public:
+    static CompileLua& Instance();
+    char* exeDir;
+    const char* projectName;
+    char* outPath;
+    int scriptIndex = 0;
+    const char* createLuaJITString(){
+        scriptIndex++;
+        const char* retVal;
+        char* input = new char[strlen(exeDir) + strlen(outPath) + 64];
+        sprintf(input, "%sbin/luajit -b \"%s\" \"%slib/lua/scripts/%09i.raw\"", exeDir, "%s", outPath, scriptIndex);
+        retVal = input;
+        
+        return retVal;
+    }
+    
+//    friend CompileLua& CompileLua_Instance();
+};
+
+CompileLua* CompileLua::instance;
+
+CompileLua& CompileLua::Instance() {
+    if(CompileLua::instance == nullptr){
+        CompileLua::instance = new CompileLua();
+    }
+    return *CompileLua::instance;
+}
+
 int main(int carg, char* args[]) {
     
 	std::cout << args[0] << std::endl;
@@ -206,8 +237,26 @@ int main(int carg, char* args[]) {
             return 0;
         case option::buildProj: {
 
-            char* compileCommand = 0;    
+            scriptsPath = new char[strlen(path) + 9];
+            resPath = new char[strlen(path) + 13];
+            libPath = new char[strlen(path) + 11];
 
+            strcpy(scriptsPath, path);
+            strcpy(resPath, path);
+            strcpy(libPath, path);
+
+            fs::addOSSlash(scriptsPath);
+            fs::addOSSlash(resPath);
+            fs::addOSSlash(libPath);
+
+            strcat(scriptsPath, "scripts");
+            strcat(resPath, "resources");
+            strcat(libPath, "lib");
+
+            fs::addOSSlash(scriptsPath);
+            fs::addOSSlash(resPath);
+            fs::addOSSlash(libPath);
+            
             lua_State* state = luaL_newstate();
             char* buildConfigPath = new char[strlen(path)+12];
             strcpy(buildConfigPath, path);
@@ -221,22 +270,42 @@ int main(int carg, char* args[]) {
             
             
             const char* executable = getStringFromGlobal(state, "ExecutableName");
-
             const char* projectName = getStringFromGlobal(state, "ProjectName");            
 
         #if defined(LUTHERIE_MAC)
-            compileCommand = new char[strlen(outPath) + strlen(executable) + strlen(exeDir) + 1024];
-
-            sprintf(compileCommand, "g++ -std=c++17 -pagezero_size 10000 -image_base 100000000 -o %s/%s.app/Contents/MacOS/%s %smodules/main.cpp -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -L%slib/static -llutherie -lECS -lECSlua -lglfw3 -L%slib -lluajit -I%s/include", outPath, projectName, executable, exeDir, exeDir, exeDir, exeDir);
-            printf("%s \n", compileCommand);
+            char* _outPath = new char[strlen(outPath) + strlen(projectName) + 21];
+            sprintf(_outPath, "%s/%s.app/Contents/MacOS/", outPath, projectName);
             
-            char* makeDir = new char[strlen(outPath) + strlen(projectName) + 27];
-            sprintf(makeDir, "mkdir -p %s/%s.app/Contents/MacOS", outPath, projectName);
+            char* makeDir = new char[strlen(_outPath)*2 + strlen(exeDir) + 1024];
+            sprintf(makeDir, "mkdir -p %slib/lua/scripts && cp -r %slib/lua/ %slib/lua/", _outPath, exeDir, _outPath);
             system(makeDir);
             delete[] makeDir;
-        #endif    
+            CompileLua& clObj = CompileLua::Instance();
+            clObj.exeDir = exeDir;
+            clObj.outPath = _outPath;
+            clObj.projectName = projectName;
             
+            void (*f)(const char*) = [](const char* p) -> void { 
+                
+                const char* luaJITCmd = CompileLua::Instance().createLuaJITString();
+                std::cout << luaJITCmd << std::endl;
+
+                char* compileLua = new char[strlen(luaJITCmd) + strlen(p)];
+                sprintf(compileLua, luaJITCmd, p);
+                std::cout << compileLua << std::endl;
+                system(compileLua);
+                delete[] compileLua;
+            };
+            delete &clObj;
+            std::cout << scriptsPath << std::endl;
+            fs::doOnFilesInDir(scriptsPath, f);
+            char* compileCommand = new char[strlen(outPath) + strlen(projectName) + strlen(executable) + strlen(exeDir) + 1024];
+            sprintf(compileCommand, "g++ -std=c++17 -pagezero_size 10000 -image_base 100000000 -o %s/%s.app/Contents/MacOS/%s %smodules/main.cpp -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -L%slib/static -llutherie -lECS -lECSlua -lglfw3 -L%slib -lluajit -I%s/include", outPath, projectName, executable, exeDir, exeDir, exeDir, exeDir);
+            printf("%s \n", compileCommand);
             system(compileCommand);
+            delete[] compileCommand;
+        #endif    
+                    
             lua_close(state);
 
             return 0;
