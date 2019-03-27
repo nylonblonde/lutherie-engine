@@ -1,11 +1,11 @@
 #ifndef ECSlua_hpp
 #define ECSlua_hpp
 
-#include <lua.hpp>
+#include <luajit-2.0/lua.hpp>
 #include <ECS.hpp>
 #include <list>
 
-#include "ecslua_export.h"
+//#include "ecslua_export.h"
 
 using namespace ECS;
 

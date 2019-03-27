@@ -7,17 +7,73 @@
     #include <shobjidl.h>
 #endif
 
-#include<stdio.h>
+#include<luajit-2.0/lua.hpp>
+#include<fstream>
+#include<unordered_map>
 
 #include <lutherie.hpp>
 
-enum option { closeApp = 0, openProj = 1 };
+enum option { closeApp = 0, openProj = 1, buildProj = 2 };
+
+const char* getStringFromGlobal(lua_State* state, const char* global){
+    lua_getglobal(state, global);
+    int result = lua_isnil(state, -1);
+    if(result != 0){
+        throw std::runtime_error("buildConfig file was missing the ProjectName variable");
+    }
+    result = lua_isstring(state, -1);
+    if(result == 0){
+        throw std::runtime_error("ProjectName in buildConfig must be a string value");
+    }
+    const char* retVal = lua_tostring(state, -1);
+//    char* retVal = new char[strlen(str)];
+//    strcpy(retVal, str);
+    lua_pop(state, 1);
+    return retVal;
+}
 
 int main(int carg, char* args[]) {
     
 	std::cout << args[0] << std::endl;
 	char* path = 0;
+    char* outPath = 0;
+    
+    char* exeDir = new char[strlen(args[0])];
+	strcpy(exeDir, args[0]);
 
+    char* scriptsPath = 0;
+    char* libPath = 0;
+    char* resPath = 0;
+
+    bool found = false;
+    for (int c = strlen(args[0]); c > 0; c--) {
+        #if defined(_WIN32) || defined(_WIN64)
+        if (exeDir[c] == '\\') {
+        #else
+        if (exeDir[c] == '/') {
+        #endif
+            exeDir[c + 1] = 0;
+            found = true;
+            break;
+        #if defined(_WIN32) || defined(_WIN64)
+        }
+        #else
+        }
+        #endif
+    }
+    if(!found) {
+        exeDir[0] = 0;
+    }
+    
+    std::unordered_map<const char *, const char *> buildConfigVars = {
+        {"ProjectName", 0},
+        {"VersionNumber", "1.0"},
+        {"Identifier", "com.Unidentified.Untitled"},
+        {"BuildVersion", "1"},
+        {"ExecutableName", "build"},
+        {"VulkanSDKPath", std::getenv("VULKAN_SDK")},
+    };
+    
 	option opt = option::closeApp;
 
 	for (int i = 0; i < carg; i += 2) {
@@ -38,7 +94,6 @@ int main(int carg, char* args[]) {
 #if defined(LUTHERIE_MAC)
 				gui = (isatty(0) == 0);
 #elif defined(_WIN32) || defined(_WIN64)
-				//gui = (_isatty(0) == 0);
 				DWORD pids[2];
 				DWORD num_pids = GetConsoleProcessList(pids, sizeof(pids) / sizeof(*pids));
 				gui = num_pids <= 1;
@@ -96,9 +151,6 @@ int main(int carg, char* args[]) {
 					}
 					CoUninitialize();
 				#endif
-                    
-                    
-                    
 					continue;
 				}
 			} else { // gui
@@ -106,6 +158,8 @@ int main(int carg, char* args[]) {
 				std::cout << "Available options:" << std::endl;
 				std::cout << "-o | --open	<path-to-project>	Opens a Lutherie project at path destination or creates one if directory doesn't contain one" << std::endl;
 				std::cout << "-t | --tty	Runs the GUI version of the Lutherie Engine from the command line" << std::endl;
+				std::cout << "-b | --build	<path-to-project> <output>	Builds the project as a standalone executable to the output path" << std::endl;
+
 				return 0;
 			}
             
@@ -121,130 +175,177 @@ int main(int carg, char* args[]) {
 			}
 			else {
 				std::cout << args[i] << " " << args[i + 1] << std::endl;
-				path = args[i + 1];
+                if(i + 1 < carg){
+                    path = args[i + 1];
 
-				opt = option::openProj;
-				continue;
+                    opt = option::openProj;
+    				continue;
+                } else {
+                    throw std::runtime_error("No path provided for opening");
+                }
 			}
 		}
 
+        if(strcmp(args[i], "-b") == 0 || strcmp(args[i], "--build") == 0) {
+            if(i + 2 < carg){
+                opt = option::buildProj;
+                path = args[i + 1];
+                outPath = args[i + 2];
+                break;
+            } else {
+                throw std::runtime_error("Building requires an input and an output path");
+            }
+        }
 		
 	} //for loop
 
     
 	switch (opt)
 	{
-	case option::closeApp:
-		return 0;
-	case option::openProj:
-		char scriptsDir[10] = "";
-		char resDir[12] = "";
-		char libDir[7] = "";
+        case option::closeApp:
+            return 0;
+        case option::buildProj: {
 
-		fs::addOSSlash(scriptsDir);
-		fs::addOSSlash(resDir);
-		fs::addOSSlash(libDir);
+            char* compileCommand = 0;    
 
-		strcat(scriptsDir, "scripts");
-		strcat(resDir, "resources");
-		strcat(libDir, "libs");
+            lua_State* state = luaL_newstate();
+            char* buildConfigPath = new char[strlen(path)+12];
+            strcpy(buildConfigPath, path);
+            fs::addOSSlash(buildConfigPath);
+            strcat(buildConfigPath, "buildConfig");
+            int result = luaL_dofile(state, buildConfigPath);
+            
+            if(result != 0){
+                throw std::runtime_error("Error loading buildConfig file, open your project to regenerate the buildConfig file");
+            }
+            
+            
+            const char* executable = getStringFromGlobal(state, "ExecutableName");
 
-		fs::addOSSlash(scriptsDir);
-		fs::addOSSlash(resDir);
-		fs::addOSSlash(libDir);
+            const char* projectName = getStringFromGlobal(state, "ProjectName");            
 
-#if defined (LUTHERIE_MAC) || defined (__unix__)
-		char newPath[strlen(path)];
+        #if defined(LUTHERIE_MAC)
+            compileCommand = new char[strlen(outPath) + strlen(executable) + strlen(exeDir) + 1024];
 
-		if (strncmp(path, "~", 1) == 0) {
-			char* home = getenv("HOME");
-			strcpy(newPath, home);
-			strcat(newPath, &path[1]);
+            sprintf(compileCommand, "g++ -std=c++17 -pagezero_size 10000 -image_base 100000000 -o %s/%s.app/Contents/MacOS/%s %smodules/main.cpp -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -L%slib/static -llutherie -lECS -lECSlua -lglfw3 -L%slib -lluajit -I%s/include", outPath, projectName, executable, exeDir, exeDir, exeDir, exeDir);
+            printf("%s \n", compileCommand);
+            
+            char* makeDir = new char[strlen(outPath) + strlen(projectName) + 27];
+            sprintf(makeDir, "mkdir -p %s/%s.app/Contents/MacOS", outPath, projectName);
+            system(makeDir);
+            delete[] makeDir;
+        #endif    
+            
+            system(compileCommand);
+            lua_close(state);
 
-			path = newPath;
-		}
+            return 0;
+        }
+        case option::openProj: {
 
-		std::cout << path << std::endl;
+            scriptsPath = new char[strlen(path) + 9];
+            resPath = new char[strlen(path) + 13];
+            libPath = new char[strlen(path) + 11];
 
-		if (fs::makePath(path)) {
+            strcpy(scriptsPath, path);
+            strcpy(resPath, path);
+            strcpy(libPath, path);
 
-			char scriptsDir[] = "scripts/";
-			char resDir[] = "resources/";
-			char libDir[] = "libs/";
+            fs::addOSSlash(scriptsPath);
+            fs::addOSSlash(resPath);
+            fs::addOSSlash(libPath);
 
-			if (fs::addSubDirectory(path, scriptsDir) && fs::addSubDirectory(path, resDir) && fs::addSubDirectory(path, libDir)) {
-				char scriptsPath[strlen(path) + strlen(scriptsDir) + 1];
-				char resPath[strlen(path) + strlen(resDir) + 1];
-				char libPath[strlen(path) + strlen(libDir) + 1];
+            strcat(scriptsPath, "scripts");
+            strcat(resPath, "resources");
+            strcat(libPath, "lib");
 
-				strcpy(scriptsPath, path);
-				strcpy(resPath, path);
-				strcpy(libPath, path);
+            fs::addOSSlash(scriptsPath);
+            fs::addOSSlash(resPath);
+            fs::addOSSlash(libPath);
 
-				fs::addOSSlash(scriptsPath);
-				fs::addOSSlash(resPath);
-				fs::addOSSlash(libPath);
 
-				strcat(scriptsPath, scriptsDir);
-				strcat(resPath, resDir);
-				strcat(libPath, libDir);
+    #if defined (LUTHERIE_MAC) || defined (__unix__)
+            char newPath[strlen(path)];
 
-				//                     World& world = World::createWorld<MySystem>();
+            if (strncmp(path, "~", 1) == 0) {
+                char* home = getenv("HOME");
+                strcpy(newPath, home);
+                strcat(newPath, &path[1]);
 
-				//                    auto start = std::chrono::high_resolution_clock::now();
-				//                    for(int i = 0; i < 10000; i++){
-				//                        Entity entity = world.createEntity();
-				//                        world.setComponent(entity, new MyComponent());
-				//                    }
-				//                    auto end = std::chrono::high_resolution_clock::now();
-				//                    double duration = std::chrono::duration_cast<std::chrono::duration<double>>(end-start).count();
-				//                    std::cout << "C++ elapsed: " << duration << std::endl;
+                path = newPath;
+            }
 
-				char exeDir[strlen(args[0])];
-				strcpy(exeDir, args[0]);
+            std::cout << path << std::endl;
 
-				for (int c = strlen(args[0]); c > 0; c--) {
-					if (exeDir[c] == '/') {
-						exeDir[c + 1] = 0;
-						break;
-					}
-				}
+            if (!fs::makePath(scriptsPath) || !fs::makePath(libPath) || !fs::makePath(resPath)) {
+                throw std::runtime_error("Failed to make a path to the supplied directory");
+            }
 
-				Lutherie lutherie = Lutherie(exeDir, scriptsPath, resPath, libPath);
-			}
-		}
+    #else // not LUTHERIE_MAC or __unix__
 
-#else // not LUTHERIE_MAC or __unix__
-		std::string scriptsPath = std::string(path) + std::string(scriptsDir);
-		std::string resPath = std::string(path) + std::string(resDir);
-		std::string libPath = std::string(path) + std::string(libDir);
+            std::filesystem::create_directories(scriptsPath);
+            std::filesystem::create_directories(resPath);
+            std::filesystem::create_directories(libPath);
 
-		std::filesystem::create_directories(scriptsPath);
-		std::filesystem::create_directories(resPath);
-		std::filesystem::create_directories(libPath);
+            if (!std::filesystem::exists(scriptsPath) || !std::filesystem::exists(resPath) || !std::filesystem::exists(libPath)) {
+                throw std::runtime_error("Error retrieving project subdirectories!");
+            }
 
-		std::cout << scriptsPath << std::endl << resPath << std::endl << libPath << std::endl;
-		if (std::filesystem::exists(scriptsPath) && std::filesystem::exists(resPath) && std::filesystem::exists(libPath)) {
+    #endif
 
-			std::string exeDir = std::string(args[0]);
+            char* parentPath = new char[strlen(path)];
+            strcpy(parentPath, path);
+        #if defined(_WIN32) || defined(_WIN64)
+            const char* slash = "\\"
+        #else
+            const char* slash = "/";
+        #endif
+            
+            char* token = strtok(parentPath, slash);
+            char* parentFolder = 0;
+            
+            while(token){
+                parentFolder = token;
+                token = strtok(NULL, slash);
+            }
+            
+            if(buildConfigVars["ProjectName"] == NULL){
+                buildConfigVars["ProjectName"] = parentFolder;
+            }
+            
+            std::cout << parentFolder << std::endl;
+            
+            lua_State* state = luaL_newstate();
+            char* buildConfigPath = new char[strlen(path)+12];
+            strcpy(buildConfigPath, path);
+            fs::addOSSlash(buildConfigPath);
+            strcat(buildConfigPath, "buildConfig");
 
-#if defined(_WIN32) || defined(_WIN64)
-			if (exeDir.find_last_of('\\') != std::string::npos) {
-				exeDir = exeDir.substr(0, exeDir.find_last_of('\\'));
-			}
-			else {
-				exeDir = "";
-			}
-#else
-			exeDir.erase(exeDir.find_last_of('/'), std::string::npos);
-#endif
+            int result = luaL_dofile(state, buildConfigPath);  
+            if(result == 0) {
+                for(auto& it : buildConfigVars){
+                    lua_getglobal(state, it.first);
+                    result = lua_isnil(state, -1);
+                    if(result == 0){
+                        result = lua_isstring(state, -1);
+                        if(result == 1){
+                            it.second = lua_tostring(state, -1);
+                        }
+                    }
+                }
+            }
 
-			Lutherie lutherie = Lutherie(exeDir.c_str(), scriptsPath.c_str(), resPath.c_str(), libPath.c_str());
-		}
+            std::fstream buildConfig;
+            buildConfig.open(buildConfigPath, std::ios::in | std::ios::out | std::ios::trunc);
+            for(auto& it : buildConfigVars){
+                buildConfig << it.first << " = \"" << it.second << "\"" << std::endl;
+            }
+            buildConfig.close();
+            lua_close(state); 
+            Lutherie lutherie = Lutherie(exeDir, scriptsPath, resPath, libPath);
 
-#endif
-
-		break;
+            break; //option::openProj
+        }
 	}
 
 	return 0;

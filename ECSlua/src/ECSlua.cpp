@@ -26,7 +26,7 @@ ECSLua::ECSLua(lua_State* s, const char* d) : mainState(s), dir(d){
 	}
 	std::cout << dir << std::endl;
     strcat(luaPath, dir);
-    strcat(luaPath, "/libs/lua/?.raw;;");
+    strcat(luaPath, "/lib/lua/?.raw;;");
 	luaL_addstring(&b, luaPath);
 	luaL_pushresult(&b);
 	lua_setfield(mainState, -2, "path");

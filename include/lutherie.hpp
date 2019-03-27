@@ -1,7 +1,7 @@
 #ifndef lutherie_hpp
 #define lutherie_hpp
 
-#include <lua.hpp>
+#include <luajit-2.0/lua.hpp>
 
 #ifdef LUTHERIE_VULKAN
 #define GLFW_INCLUDE_VULKAN

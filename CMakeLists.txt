@@ -23,11 +23,17 @@ if(APPLE)
     endif()
 endif()
 
-include(GenerateExportHeader)
+# include(GenerateExportHeader)
 
 find_package(Vulkan)
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libs/static)
+if(APPLE)
+    set(RUNTIME_OUTPUT ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/Lutherie.app/Contents/MacOS)
+else()
+    set(RUNTIME_OUTPUT ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+endif()
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${RUNTIME_OUTPUT}/lib/static)
 
 ##################
 ##              ##
@@ -39,11 +45,9 @@ add_library(ECS STATIC
     ECS/src/ECS.cpp
 )
 
-generate_export_header(ECS
-	STATIC_DEFINE SHARED_EXPORTS_BUILT_AS_STATIC
-)
-
-# add_custom_command(TARGET ECS PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/libs)
+# generate_export_header(ECS
+#	STATIC_DEFINE SHARED_EXPORTS_BUILT_AS_STATIC
+# )
 
 target_include_directories(ECS PUBLIC ${CMAKE_BINARY_DIR} ECS/include)
 
@@ -51,12 +55,15 @@ set_target_properties(ECS PROPERTIES
     CXX_STANDARD 17
 )
 
+add_custom_command(TARGET ECS PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/ECS/include ${RUNTIME_OUTPUT}/include
+)
+
 ##################
 ##              ##
 ##    LuaJIT    ##
 ##              ##
 ##################
-
 
 if(APPLE)
     if(NOT ENV{MACOSX_DEPLOYMENT_TARGET})
@@ -66,33 +73,33 @@ if(APPLE)
 endif()
 
 if(WIN32 OR WIN64) #win32 or win64 platforms
-    set(MAKE_COMMAND ${CMAKE_SOURCE_DIR}/libs/luajit/src/msvcbuild)
+    set(MAKE_COMMAND ${CMAKE_SOURCE_DIR}/lib/luajit/src/msvcbuild)
     set(LUAJIT_EXE luajit.exe)
-	set(OUTPUT_FILES  ${CMAKE_BINARY_DIR}/luajit/bin/${LUAJIT_EXE})
+	set(OUTPUT_FILES  ${RUNTIME_OUTPUT}/bin/${LUAJIT_EXE})
 
 	set(OUTPUT_COMMAND 
 		setlocal && 
-		cd ${CMAKE_SOURCE_DIR}/libs/luajit/src/ &&
+		cd ${CMAKE_SOURCE_DIR}/lib/luajit/src/ &&
 		${MAKE_COMMAND} && 
 		endlocal &&
 		echo endlocal &&
-		${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/luajit/bin/lua/jit &&
+		${CMAKE_COMMAND} -E make_directory ${RUNTIME_OUTPUT}/bin/lua/jit &&
 		echo "made directory bin/lua/jit" &&
-		${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/libs/luajit/src/jit ${CMAKE_BINARY_DIR}/luajit/bin/lua/jit &&
+		${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/lib/luajit/src/jit ${RUNTIME_OUTPUT}/luajit/bin/lua/jit &&
 		echo "copied src/jit to lua/jit" &&
 		# ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/luajit/lib &&
-		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/libs/luajit/src/${LUAJIT_EXE} ${CMAKE_BINARY_DIR}/luajit/bin/ &&
+		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/${LUAJIT_EXE} ${RUNTIME_OUTPUT}/luajit/bin/ &&
 		echo "copied executable" &&
-		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/libs/luajit/src/lua51.lib ${CMAKE_BINARY_DIR}/luajit/bin && 
-		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/libs/luajit/src/lua51.dll ${CMAKE_BINARY_DIR}/luajit/bin && 
+		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/lua51.lib ${CMAKE_BINARY_DIR}/luajit/bin && 
+		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/lua51.dll ${RUNTIME_OUTPUT}/bin && 
 		echo "copied libraries"
 	)
 
 else() #unix/apple platforms
-    set(MAKE_COMMAND make -C ${CMAKE_SOURCE_DIR}/libs/luajit)
+    set(MAKE_COMMAND make -C ${CMAKE_SOURCE_DIR}/lib/luajit)
     set(LUAJIT_EXE luajit)
-	set(OUTPUT_FILES  ${CMAKE_BINARY_DIR}/luajit/bin/${LUAJIT_EXE})
-    set(LUAJIT_PREFIX PREFIX=${CMAKE_BINARY_DIR}/luajit)
+	set(OUTPUT_FILES ${CMAKE_BINARY_DIR}/luajit/bin/${LUAJIT_EXE})
+    set(LUAJIT_PREFIX PREFIX=${RUNTIME_OUTPUT})
 
 	if(APPLE)
         set(ENVIRONMENT_COMMAND export MACOSX_DEPLOYMENT_TARGET=$ENV{MACOSX_DEPLOYMENT_TARGET} &&)
@@ -106,19 +113,18 @@ else() #unix/apple platforms
 
 endif() #platforms
 
-file(GLOB LUAJIT_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/libs/luajit/src/*.c)
+file(GLOB LUAJIT_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/lib/luajit/src/*.c)
 
 add_custom_command(OUTPUT ${OUTPUT_FILES}
     COMMAND ${OUTPUT_COMMAND}
     DEPENDS ${LUAJIT_SRC}
 )
 
-add_custom_target(luaJIT ALL DEPENDS ${CMAKE_BINARY_DIR}/luajit/bin/${LUAJIT_EXE})
+add_custom_target(luaJIT ALL DEPENDS ${OUTPUT_FILES})
 
-# add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bin/${LUAJIT_EXE}
-#    COMMAND ${CMAKE_COMMAND} ARGS -E copy ${CMAKE_SOURCE_DIR}/libs/luajit/src/${LUAJIT_EXE} ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bin/
-#    DEPENDS ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bin/${LUAJIT_EXE}
-# )
+add_custom_command(TARGET ECS PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/ECS/include ${RUNTIME_OUTPUT}/include
+)
 
 ##################
 ##              ##
@@ -132,16 +138,26 @@ add_library(ECSlua STATIC
 
 add_dependencies(ECSlua luaJIT)
 
-generate_export_header(ECSlua
-	STATIC_DEFINE SHARED_EXPORTS_BUILT_AS_STATIC
-)
+# generate_export_header(ECSlua
+#	STATIC_DEFINE SHARED_EXPORTS_BUILT_AS_STATIC
+# )
 
-target_include_directories(ECSlua PUBLIC ECSlua/include ${CMAKE_SOURCE_DIR}/libs/luajit/src)
-target_link_directories(ECSlua PUBLIC ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/libs ${CMAKE_BINARY_DIR} ${LUA_LIBRARY_DIRS})
-target_link_libraries(ECSlua ${LUA_LIBRARIES} ECS)
+if(WIN32 OR WIN64)
+    set(LUAJIT_LIB ${RUNTIME_OUTPUT}/lib/lua51.lib)
+else()
+    set(LUAJIT_LIB ${RUNTIME_OUTPUT}/lib/libluajit-5.1.a)
+endif()
+
+target_include_directories(ECSlua PUBLIC ECSlua/include ${RUNTIME_OUTPUT}/include)
+target_link_directories(ECSlua PUBLIC ${RUNTIME_OUTPUT}/lib ${CMAKE_BINARY_DIR})
+target_link_libraries(ECSlua ECS ${LUAJIT_LIB})
 
 set_target_properties(ECSlua PROPERTIES 
     CXX_STANDARD 17
+)
+
+add_custom_command(TARGET ECSlua PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/ECSlua/include ${RUNTIME_OUTPUT}/include
 )
 
 ##################
@@ -151,10 +167,14 @@ set_target_properties(ECSlua PROPERTIES
 ##################
 
 set(GLFW_BUILD_DOCS off)
-add_subdirectory(libs/glfw ${CMAKE_BINARY_DIR}/glfw EXCLUDE_FROM_ALL)
+add_subdirectory(lib/glfw ${CMAKE_BINARY_DIR}/glfw EXCLUDE_FROM_ALL)
 
 add_custom_target(staticLibs)
 add_dependencies(staticLibs glfw)
+
+add_custom_command(TARGET staticLibs PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/lib/glfw/include/GLFW ${RUNTIME_OUTPUT}/include/GLFW/
+)
 
 ##################
 ##              ##
@@ -164,34 +184,26 @@ add_dependencies(staticLibs glfw)
 
 set(SOURCES src/lutherie.cpp)
 
-if(APPLE)
-    set(RUNTIME_OUTPUT ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/Lutherie.app/Contents/MacOS)
-else()
-    set(RUNTIME_OUTPUT ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
-endif()
-
 add_library(lutherielib STATIC ${SOURCES})
 add_dependencies(lutherielib staticLibs)
 
 set_target_properties(lutherielib PROPERTIES 
 	CXX_STANDARD 17
     OUTPUT_NAME lutherie
-    ARCHIVE_OUTPUT_DIRECTORY ${RUNTIME_OUTPUT}/libs/static
+#    ARCHIVE_OUTPUT_DIRECTORY ${RUNTIME_OUTPUT}/lib/static
 )
 
-set(LINK_LIBS ${GLFW_LIBRARIES} ECSlua glfw)
+set(LINK_LIBS ECSlua glfw)
 
-target_link_directories(lutherielib PUBLIC ${CMAKE_BINARY_DIR}/libs/static)
+target_link_directories(lutherielib PUBLIC ${CMAKE_BINARY_DIR}/lib/static)
 
-target_include_directories(lutherielib PUBLIC ECSlua/include ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/libs/glfw/include ${CMAKE_BINARY_DIR}/luajit/include ${Vulkan_INCLUDE_DIRS})
+target_include_directories(lutherielib PUBLIC ECSlua/include ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/lib/glfw/include ${CMAKE_BINARY_DIR}/luajit/include ${Vulkan_INCLUDE_DIRS})
 
-if(WIN32 OR WIN64)
-    set(LUAJIT_LIB ${CMAKE_BINARY_DIR}/luajit/bin/lua51.lib)
-else()
-    set(LUAJIT_LIB ${CMAKE_BINARY_DIR}/luajit/lib/libluajit-5.1.a)
-endif()
+target_link_libraries(lutherielib ${LINK_LIBS})
 
-target_link_libraries(lutherielib ${LINK_LIBS} ${LUAJIT_LIB})
+add_custom_command(TARGET lutherielib PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/include ${RUNTIME_OUTPUT}/include
+)
 
 ##################
 ##              ##
@@ -213,16 +225,16 @@ if(WIN32)
 endif()
 
 if(APPLE)
-    add_definitions(-DLUTHERIE_MAC "-x objective-c++")
+    add_definitions(-DLUTHERIE_MAC -x objective-c++)
     set_target_properties(lutherie PROPERTIES 
         MACOSX_BUNDLE TRUE 
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/Info.plist
     )
-    target_link_options(lutherie PUBLIC "-pagezero_size 10000 -image_base 100000000")
+    target_link_options(lutherie PUBLIC -pagezero_size 10000 -image_base 100000000)
     target_link_libraries(lutherie ${COCOA_LIB} ${IOKIT_LIB} ${COREFOUNDATION_LIB} ${COREVIDEO_LIB})
 endif()
 
-target_link_directories(lutherie PUBLIC ${CMAKE_BINARY_DIR}/libs/static)
+target_link_directories(lutherie PUBLIC ${CMAKE_BINARY_DIR}/lib/static)
 target_link_libraries(lutherie lutherielib)
 target_include_directories(lutherie PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
@@ -232,13 +244,13 @@ target_include_directories(lutherie PUBLIC ${CMAKE_SOURCE_DIR}/include)
 ##              ##
 ##################
 
-add_custom_command(TARGET lutherielib POST_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${RUNTIME_OUTPUT}/libs/lua)
+add_custom_command(TARGET lutherielib PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${RUNTIME_OUTPUT}/lib/lua)
 
-set(LIB_LUA_DIR libs/lua)
+set(LIB_LUA_DIR lib/lua)
 
 function(add_lua_file LUA_NAME)
     add_custom_command(OUTPUT ${RUNTIME_OUTPUT}/${LIB_LUA_DIR}/${LUA_NAME}.raw 
-        COMMAND ${CMAKE_BINARY_DIR}/luajit/bin/luajit ARGS -b ${CMAKE_SOURCE_DIR}/scripts/${LUA_NAME}.lua ${RUNTIME_OUTPUT}/${LIB_LUA_DIR}/${LUA_NAME}.raw
+        COMMAND ${RUNTIME_OUTPUT}/bin/luajit ARGS -b ${CMAKE_SOURCE_DIR}/scripts/${LUA_NAME}.lua ${RUNTIME_OUTPUT}/${LIB_LUA_DIR}/${LUA_NAME}.raw
         DEPENDS ${CMAKE_SOURCE_DIR}/scripts/${LUA_NAME}.lua)
     add_custom_target(${LUA_NAME}.raw ALL DEPENDS ${RUNTIME_OUTPUT}/${LIB_LUA_DIR}/${LUA_NAME}.raw)
     
@@ -246,3 +258,19 @@ function(add_lua_file LUA_NAME)
 endfunction()
 
 add_lua_file(lutherie)
+
+##################
+##              ##
+##   Modules    ##
+##              ##
+##################
+
+add_custom_command(OUTPUT ${RUNTIME_OUTPUT}/modules/main.cpp
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${RUNTIME_OUTPUT}/modules
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/modules/main.cpp ${RUNTIME_OUTPUT}/modules/main.cpp
+    DEPENDS ${CMAKE_SOURCE_DIR}/modules/main.cpp
+)
+
+add_custom_target(mainModule ALL DEPENDS ${RUNTIME_OUTPUT}/modules/main.cpp)
+
+add_custom_command(TARGET ECS PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${RUNTIME_OUTPUT}/include)

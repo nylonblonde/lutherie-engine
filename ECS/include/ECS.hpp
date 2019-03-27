@@ -11,7 +11,7 @@
 #include <iterator>
 #include <cstring>
 
-#include "ecs_export.h"
+//#include "ecs_export.h"
 
 namespace ECS {
 
@@ -95,7 +95,7 @@ namespace ECS {
                 
     public:
         uint32_t id() const { return _id; }
-        static ECS_EXPORT std::vector<World*> allWorlds;
+        static std::vector<World*> allWorlds;
         
         template<typename... Args>
         static World& createWorld(System* s, Args... args){
