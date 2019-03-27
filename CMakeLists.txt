@@ -83,14 +83,22 @@ if(WIN32 OR WIN64) #win32 or win64 platforms
 		${MAKE_COMMAND} && 
 		endlocal &&
 		echo endlocal &&
+		${CMAKE_COMMAND} -E make_directory ${RUNTIME_OUTPUT}/include/luajit-2.0 &&
+		echo "made directory include" &&
+		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/lua.hpp ${RUNTIME_OUTPUT}/include/luajit-2.0/ &&
+		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/lua.h ${RUNTIME_OUTPUT}/include/luajit-2.0/ &&
+		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/lauxlib.h ${RUNTIME_OUTPUT}/include/luajit-2.0/ &&
+		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/lualib.h ${RUNTIME_OUTPUT}/include/luajit-2.0/ &&
+		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/luajit.h ${RUNTIME_OUTPUT}/include/luajit-2.0/ &&
+		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/luaconf.h ${RUNTIME_OUTPUT}/include/luajit-2.0/ &&
 		${CMAKE_COMMAND} -E make_directory ${RUNTIME_OUTPUT}/bin/lua/jit &&
 		echo "made directory bin/lua/jit" &&
-		${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/lib/luajit/src/jit ${RUNTIME_OUTPUT}/luajit/bin/lua/jit &&
+		${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/lib/luajit/src/jit ${RUNTIME_OUTPUT}/bin/lua/jit &&
 		echo "copied src/jit to lua/jit" &&
 		# ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/luajit/lib &&
-		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/${LUAJIT_EXE} ${RUNTIME_OUTPUT}/luajit/bin/ &&
+		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/${LUAJIT_EXE} ${RUNTIME_OUTPUT}/bin/ &&
 		echo "copied executable" &&
-		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/lua51.lib ${CMAKE_BINARY_DIR}/luajit/bin && 
+		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/lua51.lib ${RUNTIME_OUTPUT}/lib && 
 		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/lua51.dll ${RUNTIME_OUTPUT}/bin && 
 		echo "copied libraries"
 	)

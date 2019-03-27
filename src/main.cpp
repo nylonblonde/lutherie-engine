@@ -296,7 +296,7 @@ int main(int carg, char* args[]) {
             char* parentPath = new char[strlen(path)];
             strcpy(parentPath, path);
         #if defined(_WIN32) || defined(_WIN64)
-            const char* slash = "\\"
+			const char* slash = "\\";
         #else
             const char* slash = "/";
         #endif
