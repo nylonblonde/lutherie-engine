@@ -98,9 +98,8 @@ int main(int carg, char* args[]) {
     
     std::unordered_map<const char *, const char *> buildConfigVars = {
         {"ProjectName", 0},
-        {"VersionNumber", "1.0"},
         {"Identifier", "com.Unidentified.Untitled"},
-        {"BuildVersion", "1"},
+        {"Version", "1.0"},
         {"ExecutableName", "build"},
         {"VulkanSDKPath", std::getenv("VULKAN_SDK")},
     };
@@ -271,7 +270,9 @@ int main(int carg, char* args[]) {
             
             const char* executable = getStringFromGlobal(state, "ExecutableName");
             const char* projectName = getStringFromGlobal(state, "ProjectName");            
-
+            const char* identifier = getStringFromGlobal(state, "Identifier");            
+            const char* version = getStringFromGlobal(state, "Version");
+            
         #if defined(LUTHERIE_MAC)
             char* _outPath = new char[strlen(outPath) + strlen(projectName) + 21];
             sprintf(_outPath, "%s/%s.app/Contents/MacOS/", outPath, projectName);
@@ -280,30 +281,70 @@ int main(int carg, char* args[]) {
             sprintf(makeDir, "mkdir -p %slib/lua/scripts && cp -r %slib/lua/ %slib/lua/", _outPath, exeDir, _outPath);
             system(makeDir);
             delete[] makeDir;
+            
             CompileLua& clObj = CompileLua::Instance();
             clObj.exeDir = exeDir;
             clObj.outPath = _outPath;
             clObj.projectName = projectName;
-            
             void (*f)(const char*) = [](const char* p) -> void { 
-                
                 const char* luaJITCmd = CompileLua::Instance().createLuaJITString();
                 std::cout << luaJITCmd << std::endl;
 
                 char* compileLua = new char[strlen(luaJITCmd) + strlen(p)];
                 sprintf(compileLua, luaJITCmd, p);
                 std::cout << compileLua << std::endl;
-                system(compileLua);
+                int result = system(compileLua);
+                if(result < 0){
+                    throw std::runtime_error(
+                        std::string("LuaJIT failed to get bytecode for ")+std::string(p)
+                    );
+                }
                 delete[] compileLua;
             };
             delete &clObj;
             std::cout << scriptsPath << std::endl;
             fs::doOnFilesInDir(scriptsPath, f);
+            
             char* compileCommand = new char[strlen(outPath) + strlen(projectName) + strlen(executable) + strlen(exeDir) + 1024];
-            sprintf(compileCommand, "g++ -std=c++17 -pagezero_size 10000 -image_base 100000000 -o %s/%s.app/Contents/MacOS/%s %smodules/main.cpp -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -L%slib/static -llutherie -lECS -lECSlua -lglfw3 -L%slib -lluajit -I%s/include", outPath, projectName, executable, exeDir, exeDir, exeDir, exeDir);
+            sprintf(compileCommand, "g++ -std=c++17 -pagezero_size 10000 -image_base 100000000 -o %s%s %smodules/main.cpp -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -L%slib/static -llutherie -lECS -lECSlua -lglfw3 -L%slib -lluajit -I%s/include", _outPath, executable, exeDir, exeDir, exeDir, exeDir);
             printf("%s \n", compileCommand);
-            system(compileCommand);
+            result = system(compileCommand);
+            if(result < 0) {
+                throw std::runtime_error("Project failed to compile");
+            }
             delete[] compileCommand;
+            std::cout << std::string(_outPath) + std::string("../Info.plist") << std::endl;
+            std::fstream infoPlist;
+            infoPlist.open(std::string(_outPath) + std::string("../Info.plist"), std::ios::in | std::ios::out | std::ios::trunc);
+            infoPlist << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl;
+            infoPlist << "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">" << std::endl;
+            infoPlist << "<plist version=\"1.0\">" << std::endl;
+            infoPlist << "<dict>" << std::endl;
+            infoPlist << "\t<key>CFBundleDevelopmentRegion</key>" << std::endl;
+            infoPlist << "\t<string>en</string>" << std::endl;
+            infoPlist << "\t<key>CFBundleExecutable</key>" << std::endl;
+            infoPlist << "\t<string>" << executable << "</string>" << std::endl;
+            infoPlist << "\t<key>CFBundleIdentifier</key>" << std::endl;
+            infoPlist << "\t<string>" << identifier << "</string>" << std::endl;
+            infoPlist << "\t<key>CFBundleInfoDictionaryVersion</key>" << std::endl;
+            infoPlist << "\t<string>6.0</string>" << std::endl;
+            infoPlist << "\t<key>CFBundleName</key>" << std::endl;
+            infoPlist << "\t<string>" << projectName << "</string>" << std::endl;
+            infoPlist << "\t<key>CFBundlePackageType</key>" << std::endl;
+            infoPlist << "\t<string>APPL</string>" << std::endl;
+            infoPlist << "\t<key>CFBundleSupportedPlatforms</key>" << std::endl;
+            infoPlist << "\t<array>" << std::endl;
+            infoPlist << "\t\t<string>MacOSX</string>" << std::endl;
+            infoPlist << "\t</array>" << std::endl;
+            infoPlist << "\t<key>CFBundleDisplayName</key>" << std::endl;
+            infoPlist << "\t<string>" << projectName << "</string>" << std::endl;
+            infoPlist << "\t<key>CFBundleVersion</key>" << std::endl;
+            infoPlist << "\t<string>" << version << "</string>" << std::endl;
+            infoPlist << "\t<key>NSPrincipalClass</key>" << std::endl;
+            infoPlist << "\t<string>NSApplication</string>" << std::endl;
+            infoPlist << "</dict>" << std::endl;
+            infoPlist << "</plist>" << std::endl;
+            infoPlist.close();
         #endif    
                     
             lua_close(state);

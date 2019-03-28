@@ -6,7 +6,14 @@ Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const ch
     
 #if defined(LUTHERIE_MAC) || defined(__unix__)
     
+    char * libScripts = new char[strlen(libDir)+12];
+    strcpy(libScripts, libDir);
+    strcat(libScripts, "lua/scripts/");
+    
+    std::cout << libScripts << std::endl;
+    
     void (*f)(const char*) = &ECSLua::executeLua;
+    fs::doOnFilesInDir(libScripts, f);    
     fs::doOnFilesInDir(scriptsDir, f);
     
 #else
