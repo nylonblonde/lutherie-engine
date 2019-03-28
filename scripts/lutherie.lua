@@ -111,7 +111,7 @@ local group_mt = {
             local component = component()
             local typeCode = component.type
             local ctype = component.ctype
-			print(component.ctype)
+			-- print(component.ctype)
             for i=1, size do
 --                entity = ecs.group_getEntity(self.parent, self, i-1)
 --                print(entity, typeCode, self.parent.world)

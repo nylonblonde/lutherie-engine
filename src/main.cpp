@@ -19,11 +19,11 @@ const char* getStringFromGlobal(lua_State* state, const char* global) {
 	lua_getglobal(state, global);
 	int result = lua_isnil(state, -1);
 	if (result != 0) {
-		throw std::runtime_error("buildConfig file was missing the ProjectName variable");
+		throw std::runtime_error("build_config file was missing the ProjectName variable");
 	}
 	result = lua_isstring(state, -1);
 	if (result == 0) {
-		throw std::runtime_error("ProjectName in buildConfig must be a string value");
+		throw std::runtime_error("ProjectName in build_config must be a string value");
 	}
 	const char* retVal = lua_tostring(state, -1);
 	lua_pop(state, 1);
@@ -43,7 +43,12 @@ public:
 		scriptIndex++;
 		const char* retVal;
 		char* input = new char[strlen(exeDir) + strlen(outPath) + 64];
-		sprintf(input, "%sbin/luajit -b \"%s\" \"%slib/lua/scripts/%09i.raw\"", exeDir, "%s", outPath, scriptIndex);
+#if defined(_WIN32) || defined(_WIN64)
+		char* slash = "\\";
+#else
+		char* slash = "/";
+#endif
+		sprintf(input, "%sbin%sluajit -b \"%s\" \"%slib%slua%sscripts%s%09i.raw\"", exeDir, slash, "%s", outPath, slash, slash, slash, scriptIndex);
 		retVal = input;
 
 		return retVal;
@@ -99,7 +104,7 @@ int main(int carg, char* args[]) {
 		{"Identifier", "com.Unidentified.Untitled"},
 		{"Version", "1.0"},
 		{"ExecutableName", "build"},
-		{"VulkanSDKPath", 0},
+		{"VulkanSDKPath", getenv("VULKAN_SDK")},
 	};
 
 	option opt = option::closeApp;
@@ -265,12 +270,11 @@ int main(int carg, char* args[]) {
 			std::cout << scriptsPath << std::endl << resPath << std::endl << libPath << std::endl;
 
 			lua_State* state = luaL_newstate();
-			char* buildConfigPath = new char[strlen(path) + 13];
+			char* buildConfigPath = new char[strlen(path) + 18];
 			strcpy(buildConfigPath, path);
 			fs::addOSSlash(buildConfigPath);
-			strcat(buildConfigPath, "buildConfig");
+			strcat(buildConfigPath, "build_config.lua");
 			std::cout << buildConfigPath << std::endl;
-
 
 			int result = luaL_dofile(state, buildConfigPath);
 
@@ -278,45 +282,32 @@ int main(int carg, char* args[]) {
 				auto message = lua_tostring(state, -1);
 				puts(message);
 				lua_pop(state, 1);
-				throw std::runtime_error("Error loading buildConfig file, open your project to regenerate the buildConfig file if there are nil fields.");
+				throw std::runtime_error("Error loading build_config.lua file, open your project to regenerate the buildConfig file if there are nil fields.");
 			}
 
 			const char* executable = getStringFromGlobal(state, "ExecutableName");
 			const char* projectName = getStringFromGlobal(state, "ProjectName");
 			const char* identifier = getStringFromGlobal(state, "Identifier");
 			const char* version = getStringFromGlobal(state, "Version");
+			char* _outPath = new char[strlen(outPath) + strlen(projectName) + 24];
 
-#if defined(LUTHERIE_MAC)
-			char* _outPath = new char[strlen(outPath) + strlen(projectName) + 21];
+#if defined(_WIN32) || defined(_WIN64)
+			sprintf(_outPath, "%s\\%s\\", outPath, projectName);
+
+			std::string makeDir = std::string(_outPath) + std::string("/lib/lua/scripts");
+			std::filesystem::create_directories(makeDir);
+
+			if (!std::filesystem::exists(makeDir)) {
+				throw std::runtime_error("Failed to make build directory!");
+			}
+			std::filesystem::copy(std::string(exeDir) + std::string("/lib/lua"), std::string(_outPath) + std::string("/lib/lua"));
+
+#elif defined(LUTHERIE_MAC)
 			sprintf(_outPath, "%s/%s.app/Contents/MacOS/", outPath, projectName);
 
 			char* makeDir = new char[strlen(_outPath) * 2 + strlen(exeDir) + 1024];
 			sprintf(makeDir, "mkdir -p %slib/lua/scripts && cp -r %slib/lua/ %slib/lua/", _outPath, exeDir, _outPath);
 			system(makeDir);
-			delete[] makeDir;
-
-			CompileLua& clObj = CompileLua::Instance();
-			clObj.exeDir = exeDir;
-			clObj.outPath = _outPath;
-			clObj.projectName = projectName;
-			void(*f)(const char*) = [](const char* p) -> void {
-				const char* luaJITCmd = CompileLua::Instance().createLuaJITString();
-				std::cout << luaJITCmd << std::endl;
-
-				char* compileLua = new char[strlen(luaJITCmd) + strlen(p)];
-				sprintf(compileLua, luaJITCmd, p);
-				std::cout << compileLua << std::endl;
-				int result = system(compileLua);
-				if (result < 0) {
-					throw std::runtime_error(
-						std::string("LuaJIT failed to get bytecode for ") + std::string(p)
-					);
-				}
-				delete[] compileLua;
-			};
-			delete &clObj;
-			std::cout << scriptsPath << std::endl;
-			fs::doOnFilesInDir(scriptsPath, f);
 
 			char* compileCommand = new char[strlen(outPath) + strlen(projectName) + strlen(executable) + strlen(exeDir) + 1024];
 			sprintf(compileCommand, "g++ -std=c++17 -pagezero_size 10000 -image_base 100000000 -o %s%s %smodules/main.cpp -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -L%slib/static -llutherie -lECS -lECSlua -lglfw3 -L%slib -lluajit -I%s/include", _outPath, executable, exeDir, exeDir, exeDir, exeDir);
@@ -359,10 +350,39 @@ int main(int carg, char* args[]) {
 			infoPlist << "</plist>" << std::endl;
 			infoPlist.close();
 
-			delete[] _outPath;
 #endif    
 
+			CompileLua& clObj = CompileLua::Instance();
+			clObj.exeDir = exeDir;
+			clObj.outPath = _outPath;
+			clObj.projectName = projectName;
+			void(*f)(const char*) = [](const char* p) -> void {
+				const char* luaJITCmd = CompileLua::Instance().createLuaJITString();
+				std::cout << luaJITCmd << std::endl;
+
+				char* compileLua = new char[strlen(luaJITCmd) + strlen(p)];
+				sprintf(compileLua, luaJITCmd, p);
+				std::cout << compileLua << std::endl;
+				int result = system(compileLua);
+				if (result < 0) {
+					throw std::runtime_error(
+						std::string("LuaJIT failed to get bytecode for ") + std::string(p)
+					);
+				}
+				delete[] compileLua;
+			};
+			std::cout << scriptsPath << std::endl;
+#if defined(_WIN32) || defined(_WIN64)
+			for (std::filesystem::directory_entry it : std::filesystem::recursive_directory_iterator(scriptsPath)) {
+				(*f)(it.path().string().c_str());
+			}
+#else
+			fs::doOnFilesInDir(scriptsPath, f);
+#endif
+			delete &clObj;
+
 			lua_close(state);
+			delete[] _outPath;
 
 			delete[] exeDir;
 			delete[] scriptsPath;
@@ -446,48 +466,47 @@ int main(int carg, char* args[]) {
 				token = strtok(NULL, slash);
 			}
 
-			std::string vulkanPath;
-			if (buildConfigVars["VulkanSDKPath"] == NULL) {
-				vulkanPath = getenv("VULKAN_SDK");
-				size_t n = vulkanPath.find("\\");
-				while (n != std::string::npos) {
-					vulkanPath.replace(n, 1, "\\\\");
-					n = vulkanPath.find("\\", n+2);
+			lua_State* state = luaL_newstate();
+			char* buildConfigPath = new char[strlen(path) + 18];
+			strcpy(buildConfigPath, path);
+			fs::addOSSlash(buildConfigPath);
+			strcat(buildConfigPath, "build_config.lua");
+
+			int result = luaL_dofile(state, buildConfigPath);
+
+			if (result != 0) {
+				auto message = lua_tostring(state, -1);
+				puts(message);
+			}
+			for (auto it = buildConfigVars.begin(); it != buildConfigVars.end(); ++it) {
+
+				lua_getglobal(state, it->first.c_str());
+				int result = lua_isnil(state, -1);
+				if (result == 0) {
+					result = lua_isstring(state, -1);
+					//std::cout << result << std::endl;
+					if (result == 1) {
+						it->second = lua_tostring(state, -1);
+						std::cout << it->first << " " << it->second << std::endl;
+
+					}
 				}
-				buildConfigVars["VulkanSDKPath"] = vulkanPath.c_str();
 			}
 
 			if (buildConfigVars["ProjectName"] == NULL) {
 				buildConfigVars["ProjectName"] = parentFolder;
 			}
 
-			lua_State* state = luaL_newstate();
-			char* buildConfigPath = new char[strlen(path) + 13];
-			strcpy(buildConfigPath, path);
-			fs::addOSSlash(buildConfigPath);
-			strcat(buildConfigPath, "buildConfig");
-
-			int result = luaL_dofile(state, buildConfigPath);
-
-			if (result == 0) {
-				for (auto it = buildConfigVars.begin(); it != buildConfigVars.end(); ++it) {
-
-					lua_getglobal(state, it->first.c_str());
-					result = lua_isnil(state, -1);
-					if (result == 0) {
-						result = lua_isstring(state, -1);
-						if (result == 1) {
-							it->second = lua_tostring(state, -1);
-
-						}
-					}
-				}
-			}
-
 			std::fstream buildConfig;
 			buildConfig.open(buildConfigPath, std::ios::in | std::ios::out | std::ios::trunc);
 			for (auto it = buildConfigVars.begin(); it != buildConfigVars.end(); ++it) {
-				buildConfig << it->first << " = \"" << it->second << "\"" << std::endl;
+				std::string string = it->second;
+				size_t n = string.find("\\");
+				while (n != std::string::npos) {
+					string.replace(n, 1, "\\\\");
+					n = string.find("\\", n + 2);
+				}
+				buildConfig << it->first << " = \"" << string << "\"" << std::endl;
 			}
 			buildConfig.close();
 
