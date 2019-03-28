@@ -16,6 +16,8 @@ Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const ch
     fs::doOnFilesInDir(libScripts, f);    
     fs::doOnFilesInDir(scriptsDir, f);
     
+	delete[] libScripts;
+
 #else
 	for (std::filesystem::directory_entry it : std::filesystem::recursive_directory_iterator(sDir)) {
 		std::cout << it.path() << std::endl;

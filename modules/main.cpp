@@ -3,7 +3,7 @@
 
 int main(int carg, char* args[]){
     
-    char* exeDir = new char[strlen(args[0])];
+    char* exeDir = new char[strlen(args[0])+1];
     strcpy(exeDir, args[0]);
     char* scriptsPath = 0;
     char* libPath = 0;
@@ -35,7 +35,7 @@ int main(int carg, char* args[]){
     strcat(scriptsPath, "scripts");
     fs::addOSSlash(scriptsPath);
 
-    libPath = new char[strlen(exeDir)+7];
+    libPath = new char[strlen(exeDir)+6];
     strcpy(libPath, exeDir);
     fs::addOSSlash(libPath);
     strcat(libPath, "lib");
@@ -48,4 +48,10 @@ int main(int carg, char* args[]){
     fs::addOSSlash(resPath);
     
     Lutherie lutherie = Lutherie(exeDir, scriptsPath, resPath, libPath);
+
+	delete[] exeDir;
+	delete[] scriptsPath;
+	delete[] resPath;
+	delete[] libPath;
+
 }
