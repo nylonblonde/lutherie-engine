@@ -5,8 +5,6 @@
 #include <ECS.hpp>
 #include <list>
 
-//#include "ecslua_export.h"
-
 using namespace ECS;
 
 void printLuaError(lua_State* state);

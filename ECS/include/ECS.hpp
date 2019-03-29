@@ -11,8 +11,6 @@
 #include <iterator>
 #include <cstring>
 
-//#include "ecs_export.h"
-
 namespace ECS {
 
     struct TypedObject {

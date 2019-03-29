@@ -73,7 +73,7 @@ if(APPLE)
 endif()
 
 if(WIN32 OR WIN64) #win32 or win64 platforms
-    set(MAKE_COMMAND ${CMAKE_SOURCE_DIR}/lib/luajit/src/msvcbuild)
+    set(MAKE_COMMAND ${CMAKE_SOURCE_DIR}/lib/luajit/src/msvcbuild.bat static)
     set(LUAJIT_EXE luajit.exe)
 	set(OUTPUT_FILES  ${RUNTIME_OUTPUT}/bin/${LUAJIT_EXE})
 
@@ -99,7 +99,7 @@ if(WIN32 OR WIN64) #win32 or win64 platforms
 		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/${LUAJIT_EXE} ${RUNTIME_OUTPUT}/bin/ &&
 		echo "copied executable" &&
 		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/lua51.lib ${RUNTIME_OUTPUT}/lib && 
-		${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/lua51.dll ${RUNTIME_OUTPUT}/bin && 
+		# ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/luajit/src/lua51.dll ${RUNTIME_OUTPUT}/bin && 
 		echo "copied libraries"
 	)
 
@@ -224,12 +224,12 @@ add_executable(lutherie src/main.cpp)
 set_target_properties(lutherie PROPERTIES 
 	CXX_STANDARD 17
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}
+	ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
 )
 
-if(WIN32)
+if(WIN32 OR WIN64)
 	# set_target_properties(lutherie PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
-	# target_link_options(lutherie PUBLIC "/entry:mainCRTStartup")
-    add_definitions(-DNODEFAULTLIB:library -D_CRT_SECURE_NO_WARNINGS)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNODEFAULTLIB:library)
 endif()
 
 if(APPLE)

@@ -80,7 +80,7 @@ int main(int carg, char* args[]) {
 	char* resPath = 0;
 
 	bool found = false;
-	for (int c = strlen(args[0]); c > 0; c--) {
+	for (size_t c = strlen(args[0]); c > 0; c--) {
 #if defined(_WIN32) || defined(_WIN64)
 		if (exeDir[c] == '\\') {
 #else
@@ -300,7 +300,7 @@ int main(int carg, char* args[]) {
 			if (!std::filesystem::exists(makeDir)) {
 				throw std::runtime_error("Failed to make build directory!");
 			}
-			std::filesystem::copy(std::string(exeDir) + std::string("/lib/lua"), std::string(_outPath) + std::string("/lib/lua"));
+			std::filesystem::copy(std::string(exeDir) + std::string("/lib/lua"), std::string(_outPath) + std::string("/lib/lua"), std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::recursive );
 
 #elif defined(LUTHERIE_MAC)
 			sprintf(_outPath, "%s/%s.app/Contents/MacOS/", outPath, projectName);
@@ -391,11 +391,6 @@ int main(int carg, char* args[]) {
 			delete[] path;
 			delete[] outPath;
 
-			delete[] executable;
-			delete[] projectName;
-			delete[] identifier;
-			delete[] version;
-
 			return 0;
 		}
 		case option::openProj: {
@@ -422,7 +417,7 @@ int main(int carg, char* args[]) {
 
 
 #if defined (LUTHERIE_MAC) || defined (__unix__)
-			char newPath[strlen(path)];
+			char newPath = new char[strlen(path)+1];
 
 			if (strncmp(path, "~", 1) == 0) {
 				char* home = getenv("HOME");
