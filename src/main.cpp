@@ -44,9 +44,9 @@ public:
 		const char* retVal;
 		char* input = new char[strlen(exeDir) + strlen(outPath) + 64];
 #if defined(_WIN32) || defined(_WIN64)
-		char* slash = "\\";
+		const char* slash = "\\";
 #else
-		char* slash = "/";
+		const char* slash = "/";
 #endif
 		sprintf(input, "%sbin%sluajit -b \"%s\" \"%slib%slua%sscripts%s%09i.raw\"", exeDir, slash, "%s", outPath, slash, slash, slash, scriptIndex);
 		retVal = input;
@@ -309,6 +309,8 @@ int main(int carg, char* args[]) {
 			sprintf(makeDir, "mkdir -p %slib/lua/scripts && cp -r %slib/lua/ %slib/lua/", _outPath, exeDir, _outPath);
 			system(makeDir);
 
+            delete[] makeDir;
+            
 			char* compileCommand = new char[strlen(outPath) + strlen(projectName) + strlen(executable) + strlen(exeDir) + 1024];
 			sprintf(compileCommand, "g++ -std=c++17 -pagezero_size 10000 -image_base 100000000 -o %s%s %smodules/main.cpp -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -L%slib/static -llutherie -lECS -lECSlua -lglfw3 -L%slib -lluajit -I%s/include", _outPath, executable, exeDir, exeDir, exeDir, exeDir);
 			printf("%s \n", compileCommand);
@@ -417,7 +419,11 @@ int main(int carg, char* args[]) {
 
 
 #if defined (LUTHERIE_MAC) || defined (__unix__)
+<<<<<<< HEAD
 			char newPath = new char[strlen(path)+1];
+=======
+			char* newPath = new char[strlen(path)+1];
+>>>>>>> 6bb57f78cb71319c166d057817ceba6be67fa6a4
 
 			if (strncmp(path, "~", 1) == 0) {
 				char* home = getenv("HOME");
