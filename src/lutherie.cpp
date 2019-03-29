@@ -4,26 +4,33 @@
 
 Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir) : projectDir(dir), scriptsDir(sDir), resourcesDir(rDir), libDir(lDir), ecs(new ECSLua(luaL_newstate(), dir)) {
     
+	char * libScripts = new char[strlen(libDir) + 12];
+	strcpy(libScripts, libDir);
+	strcat(libScripts, "lua/scripts/");
+
 #if defined(LUTHERIE_MAC) || defined(__unix__)
-    
-    char * libScripts = new char[strlen(libDir)+12];
-    strcpy(libScripts, libDir);
-    strcat(libScripts, "lua/scripts/");
-    
-    std::cout << libScripts << std::endl;
     
     void (*f)(const char*) = &ECSLua::executeLua;
     fs::doOnFilesInDir(libScripts, f);    
     fs::doOnFilesInDir(scriptsDir, f);
     
-	delete[] libScripts;
 
 #else
-	for (std::filesystem::directory_entry it : std::filesystem::recursive_directory_iterator(sDir)) {
-		std::cout << it.path() << std::endl;
-		ecs->executeLua(it.path().string().c_str());
+	if (std::filesystem::exists(libScripts)) {
+		for (std::filesystem::directory_entry it : std::filesystem::recursive_directory_iterator(libScripts)) {
+			std::cout << it.path() << std::endl;
+			ecs->executeLua(it.path().string().c_str());
+}
+	}
+	if (std::filesystem::exists(sDir)) {
+		for (std::filesystem::directory_entry it : std::filesystem::recursive_directory_iterator(sDir)) {
+			std::cout << it.path() << std::endl;
+			ecs->executeLua(it.path().string().c_str());
+		}
 	}
 #endif
+
+	delete[] libScripts;
 
     initWindow();
     mainLoop();
@@ -44,10 +51,10 @@ void Lutherie::initWindow(){
     
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    
-    window = glfwCreateWindow(WIDTH, HEIGHT, "Lutherie", nullptr, nullptr);
-    
-    glfwSetWindowUserPointer(window, this);
+
+	window = glfwCreateWindow(WIDTH, HEIGHT, "Lutherie", nullptr, nullptr);
+
+	glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 }
 

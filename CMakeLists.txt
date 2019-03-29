@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.13.3)
 
 project(lutherie)
 
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
 
 if(APPLE)
     find_library(COCOA_LIB Cocoa)
@@ -23,8 +25,6 @@ if(APPLE)
     endif()
 endif()
 
-# include(GenerateExportHeader)
-
 find_package(Vulkan)
 
 if(APPLE)
@@ -44,10 +44,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${RUNTIME_OUTPUT}/lib/static)
 add_library(ECS STATIC
     ECS/src/ECS.cpp
 )
-
-# generate_export_header(ECS
-#	STATIC_DEFINE SHARED_EXPORTS_BUILT_AS_STATIC
-# )
 
 target_include_directories(ECS PUBLIC ${CMAKE_BINARY_DIR} ECS/include)
 
@@ -146,10 +142,6 @@ add_library(ECSlua STATIC
 
 add_dependencies(ECSlua luaJIT)
 
-# generate_export_header(ECSlua
-#	STATIC_DEFINE SHARED_EXPORTS_BUILT_AS_STATIC
-# )
-
 if(WIN32 OR WIN64)
     set(LUAJIT_LIB ${RUNTIME_OUTPUT}/lib/lua51.lib)
 else()
@@ -198,7 +190,6 @@ add_dependencies(lutherielib staticLibs)
 set_target_properties(lutherielib PROPERTIES 
 	CXX_STANDARD 17
     OUTPUT_NAME lutherie
-#    ARCHIVE_OUTPUT_DIRECTORY ${RUNTIME_OUTPUT}/lib/static
 )
 
 set(LINK_LIBS ECSlua glfw)

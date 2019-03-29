@@ -53,8 +53,6 @@ public:
 
 		return retVal;
 	}
-
-	//    friend CompileLua& CompileLua_Instance();
 };
 
 CompileLua* CompileLua::instance;
@@ -99,12 +97,15 @@ int main(int carg, char* args[]) {
 		exeDir[0] = 0;
 	}
 
+	const char* vulkanPath = getenv("VULKAN_SDK");
+	vulkanPath = vulkanPath == NULL ? getenv("VK_SDK_PATH") : vulkanPath;
+
 	std::unordered_map<std::string, const char *> buildConfigVars = {
 		{"ProjectName", 0},
 		{"Identifier", "com.Unidentified.Untitled"},
 		{"Version", "1.0"},
 		{"ExecutableName", "build"},
-		{"VulkanSDKPath", getenv("VULKAN_SDK")},
+		{"VulkanSDKPath", vulkanPath},
 	};
 
 	option opt = option::closeApp;
@@ -292,6 +293,7 @@ int main(int carg, char* args[]) {
 			char* _outPath = new char[strlen(outPath) + strlen(projectName) + 24];
 
 #if defined(_WIN32) || defined(_WIN64)
+			const char* visualStudioDir = getStringFromGlobal(state, "VisualStudioInstallDir");
 			sprintf(_outPath, "%s\\%s\\", outPath, projectName);
 
 			std::string makeDir = std::string(_outPath) + std::string("/lib/lua/scripts");
@@ -301,7 +303,11 @@ int main(int carg, char* args[]) {
 				throw std::runtime_error("Failed to make build directory!");
 			}
 			std::filesystem::copy(std::string(exeDir) + std::string("/lib/lua"), std::string(_outPath) + std::string("/lib/lua"), std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::recursive );
-
+			char * compileCommand = new char[strlen(visualStudioDir) + strlen(projectName) + strlen(executable) + strlen(exeDir) + 1024];
+			sprintf(compileCommand, "\"%s\\VC\\Auxiliary\\Build\\vcvars64.bat\" && cl /MD /Fe%s\\%s /I%s\\include %s\\modules\\main.cpp gdi32.lib opengl32.lib kernel32.lib user32.lib shell32.lib /link /LIBPATH:%s\\lib /LIBPATH:%s\\lib\\static lutherie.lib ECS.lib ECSlua.lib glfw3.lib lua51.lib" , visualStudioDir, _outPath, executable, exeDir, exeDir, exeDir, exeDir);
+			printf("%s \n", compileCommand); 
+			system(compileCommand);
+			delete[] compileCommand;
 #elif defined(LUTHERIE_MAC)
 			sprintf(_outPath, "%s/%s.app/Contents/MacOS/", outPath, projectName);
 
@@ -364,7 +370,6 @@ int main(int carg, char* args[]) {
 
 				char* compileLua = new char[strlen(luaJITCmd) + strlen(p)];
 				sprintf(compileLua, luaJITCmd, p);
-				std::cout << compileLua << std::endl;
 				int result = system(compileLua);
 				if (result < 0) {
 					throw std::runtime_error(
@@ -419,11 +424,7 @@ int main(int carg, char* args[]) {
 
 
 #if defined (LUTHERIE_MAC) || defined (__unix__)
-<<<<<<< HEAD
-			char newPath = new char[strlen(path)+1];
-=======
 			char* newPath = new char[strlen(path)+1];
->>>>>>> 6bb57f78cb71319c166d057817ceba6be67fa6a4
 
 			if (strncmp(path, "~", 1) == 0) {
 				char* home = getenv("HOME");
@@ -497,6 +498,12 @@ int main(int carg, char* args[]) {
 			if (buildConfigVars["ProjectName"] == NULL) {
 				buildConfigVars["ProjectName"] = parentFolder;
 			}
+
+#if defined(_WIN32) || defined(_WIN64)
+			if (buildConfigVars.find("VisualStudioInstallDir") == buildConfigVars.end() || buildConfigVars["VisualStudioInstallDir"] == NULL) {
+				buildConfigVars.emplace("VisualStudioInstallDir", "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\");
+			}
+#endif
 
 			std::fstream buildConfig;
 			buildConfig.open(buildConfigPath, std::ios::in | std::ios::out | std::ios::trunc);

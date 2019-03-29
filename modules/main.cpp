@@ -2,7 +2,6 @@
 #include <fs.h>
 
 int main(int carg, char* args[]){
-    
     char* exeDir = new char[strlen(args[0])+1];
     strcpy(exeDir, args[0]);
     char* scriptsPath = 0;
