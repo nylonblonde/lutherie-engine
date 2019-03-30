@@ -3,8 +3,11 @@ cmake_minimum_required(VERSION 3.13.3)
 project(lutherie)
 
 set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
+
+if(WIN32 OR WIN64)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
+endif()
 
 if(APPLE)
     find_library(COCOA_LIB Cocoa)
@@ -271,5 +274,21 @@ add_custom_command(OUTPUT ${RUNTIME_OUTPUT}/modules/main.cpp
 )
 
 add_custom_target(mainModule ALL DEPENDS ${RUNTIME_OUTPUT}/modules/main.cpp)
+
+if(UNIX AND NOT APPLE)
+    file(GLOB LINUX_BINS ${CMAKE_SOURCE_DIR}/bin/linux/appimagetool*.AppImage)
+    add_custom_target(copyBin 
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bin/linux/ ${RUNTIME_OUTPUT}/bin/linux/
+        SOURCES ${LINUX_BINS}
+    )
+    add_dependencies(lutherie copyBin)
+    
+endif()
+
+file(GLOB LUTHERIE_ICONS ${CMAKE_SOURCE_DIR}/resources/icons/*.?)
+add_custom_target(copyIcons ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/resources/icons/ ${RUNTIME_OUTPUT}/resources/icons/
+    SOURCES ${LUTHERIE_ICONS}
+)
 
 add_custom_command(TARGET ECS PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${RUNTIME_OUTPUT}/include)

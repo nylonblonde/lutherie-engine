@@ -290,10 +290,11 @@ int main(int carg, char* args[]) {
 			const char* projectName = getStringFromGlobal(state, "ProjectName");
 			const char* identifier = getStringFromGlobal(state, "Identifier");
 			const char* version = getStringFromGlobal(state, "Version");
-			char* _outPath = new char[strlen(outPath) + strlen(projectName) + 24];
 
 #if defined(_WIN32) || defined(_WIN64)
 			const char* visualStudioDir = getStringFromGlobal(state, "VisualStudioInstallDir");
+			char* _outPath = new char[strlen(outPath) + strlen(projectName) + 24];
+
 			sprintf(_outPath, "%s\\%s\\", outPath, projectName);
 
 			std::string makeDir = std::string(_outPath) + std::string("/lib/lua/scripts");
@@ -308,7 +309,92 @@ int main(int carg, char* args[]) {
 			printf("%s \n", compileCommand); 
 			system(compileCommand);
 			delete[] compileCommand;
+#elif defined(__linux__)
+			char* _outPath = new char[strlen(exeDir) + strlen(projectName) + 13];
+			sprintf(_outPath, "%stmp/%s.AppDir/", exeDir, projectName);
+
+			char* makeDir = new char[strlen(_outPath) * 2 + strlen(exeDir)+40];
+			sprintf(makeDir, "mkdir -p %slib/lua/scripts && cp -r %slib/lua %s/lib", _outPath, exeDir, _outPath);
+			result = system(makeDir);
+			delete[] makeDir;
+
+			char* copyIcon = new char[strlen(resPath) + strlen(_outPath)+strlen(executable)+40];
+			sprintf(copyIcon, "cp %sicons/256.png %s%s.png", resPath, _outPath, executable);
+			result = system(copyIcon);
+			if(result != 0){
+				copyIcon = new char[strlen(exeDir) + strlen(_outPath)+strlen(executable)+40];
+				sprintf(copyIcon, "cp %sresources/icons/256.png %s%s.png", exeDir, _outPath, executable);
+				result = system(copyIcon);
+			}
+			delete[] copyIcon;
+
+			char* compileCommand = new char[strlen(_outPath) + strlen(projectName) + strlen(executable) + strlen(exeDir) + 1024];
+			sprintf(compileCommand, "g++ -std=c++17 -o %s%s %smodules/main.cpp -L%slib/static -llutherie -lECS -lECSlua -lglfw3 -pthread -ldl -lGLU -lGL -lrt -lXrandr -lXxf86vm -lXi -lXinerama -lX11 -L%slib -lluajit-5.1 -I%s/include", _outPath, executable, exeDir, exeDir, exeDir, exeDir);
+			printf("%s \n", compileCommand);
+			result = system(compileCommand);
+			if (result < 0) {
+				throw std::runtime_error("Project failed to compile");
+			}
+			delete[] compileCommand;
+
+			std::fstream fileStream;
+			char* fsPath = new char[strlen(_outPath)+strlen(executable)+9];
+			sprintf(fsPath, "%s%s.desktop", _outPath, executable);
+			std::cout << fsPath << std::endl;
+			fileStream.open(fsPath, std::ios::in | std::ios::out | std::ios::trunc);
+			fileStream << "[Desktop Entry]" << std::endl;
+			fileStream << "Name=" << projectName << std::endl;
+			fileStream << "Type=Application" << std::endl;
+			fileStream << "Exec=" << executable << std::endl;
+			fileStream << "Icon=" << executable << std::endl;
+			fileStream << "Categories=Game;" << std::endl;
+			fileStream.close();
+			delete[] fsPath;
+
+			fsPath = new char[strlen(_outPath)+7];
+
+			sprintf(fsPath, "%sAppRun", _outPath);
+			std::cout << fsPath << std::endl;
+
+			fileStream.open(fsPath,std::ios::in | std::ios::out | std::ios::trunc);
+			fileStream << "#!/bin/sh" << std::endl;
+			fileStream << "cd \"$(dirname \"$0\")\"" << std::endl;
+			fileStream << "exec ./" << executable << std::endl;
+			fileStream.close();
+			delete[] fsPath;
+
+			fsPath = new char[strlen(_outPath)+16];
+			sprintf(fsPath, "chmod +x %sAppRun", _outPath);
+			result = system(fsPath);
+			delete[] fsPath;
+
+			fsPath = new char[strlen(_outPath)+strlen(exeDir)+100];
+			sprintf(fsPath, "%sbin/linux/appimagetool-x86_64.AppImage %s %s%s-x86_64.AppImage", exeDir, _outPath, outPath, projectName);
+			result = system(fsPath);
+			delete[] fsPath;
+
+			if (result != 0){
+				fsPath = new char[strlen(_outPath)*2+strlen(exeDir)*2+strlen(projectName)*5+strlen(outPath)*3+strlen(executable)+256];
+				sprintf(fsPath, "mksquashfs %s %stmp/%s.squashfs -root-owned -noappend "
+				"&& cat %s%s >> %s%s-x86_64.AppImage "
+				"&& cat %stmp/%s.squashfs >> %s%s-x86_64.AppImage "
+				"&& chmod +x %s%s-x86_64.AppImage", 
+				_outPath, exeDir, projectName, 
+				_outPath, executable, outPath, projectName, 
+				exeDir, projectName, outPath, projectName,
+				outPath, projectName);
+				result = system(fsPath);
+				delete[] fsPath;
+			}
+
+			fsPath = new char[strlen(_outPath)+strlen(projectName)+100];
+			sprintf(fsPath, "chmod +x %s%s-x86_64.AppImage", outPath, projectName);
+			result = system(fsPath);
+			delete[] fsPath;
+
+
 #elif defined(LUTHERIE_MAC)
+			char* _outPath = new char[strlen(outPath) + strlen(projectName) + 24];
 			sprintf(_outPath, "%s/%s.app/Contents/MacOS/", outPath, projectName);
 
 			char* makeDir = new char[strlen(_outPath) * 2 + strlen(exeDir) + 1024];
@@ -317,7 +403,7 @@ int main(int carg, char* args[]) {
 
             delete[] makeDir;
             
-			char* compileCommand = new char[strlen(outPath) + strlen(projectName) + strlen(executable) + strlen(exeDir) + 1024];
+			char* compileCommand = new char[strlen(_outPath) + strlen(projectName) + strlen(executable) + strlen(exeDir) + 1024];
 			sprintf(compileCommand, "g++ -std=c++17 -pagezero_size 10000 -image_base 100000000 -o %s%s %smodules/main.cpp -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -L%slib/static -llutherie -lECS -lECSlua -lglfw3 -L%slib -lluajit -I%s/include", _outPath, executable, exeDir, exeDir, exeDir, exeDir);
 			printf("%s \n", compileCommand);
 			result = system(compileCommand);

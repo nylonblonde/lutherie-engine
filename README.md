@@ -2,22 +2,22 @@
 
 Lutherie Engine is a game development engine powered by an Entity Component System pattern written in C/C++ and supports scripting with Lua. Currently, the engine only features the ECS architecture, to which features like rendering will be added to as development continues.
 
+Currently using [an icon](http://icongal.com/gallery/icon/109662/256/lion_young) by [mattahan](https://www.deviantart.com/mattahan) as the default AppImage icon for built projects.
+
 ## Build instructions
 
 Lutherie Engine depends on the following libraries
-- [LuaJIT](http://luajit.org/git/luajit-2.0.git)
+- [LuaJIT](http://luajit.org)
 - [Vulkan](https://vulkan.lunarg.com/sdk/home)
 - [GLFW](https://github.com/glfw/glfw)
 
-Ensure that you have the shared libraries of GLFW installed rather than static. You can follow their build instructions to ensure shared libraries are built if compiling from source.
+LuaJIT and GLFW are included as git submodules. When you clone the repository, you can get the submodules as well with `git clone https://github.com/nylonblonde/lutherie-engine --recurse-submodules`. 
 
-From the root directory, make a build directory, cd into it, and run `cmake ..` and then `make`.
+Before building, the Vulkan SDK must be installed, and the VULKAN_SDK environment must be set to the installation path.
 
-cmake will require some arguments to determine where the dependencies are located if pkgconfig cannot find the dependencies. Check CMakeLists.txt for arguments you may have to pass if they are not installed in the default installation locations.
+`cd` into the cloned repository and follow the installation commands below.
 
-Vulkan will require you set a VULKAN_SDK environment variable with a path to where the SDK is located in order to find it. Alternatively, you can manually set the library directories and include directories with cmake definition arguments, ie: `cmake -DVULKAN_LIBRARY_DIRS:PATH=/Users/lyon/vulkan/macOS/lib -DVULKAN_INCLUDE_DIRS:PATH=/Users/lyon/vulkan/macOS/include ..` as opposed to just `cmake ..` below.
-
-List of installation commands:
+List of installation commands on Linux & Mac:
 
 ```
 mkdir build
@@ -26,13 +26,24 @@ cmake ..
 make
 ```
 
-Once built, you can run the engine with `./lutherie`, which will output arguments for usage.
+On Windows, use the NMake Makefiles generator instead of building a Visual Studio project and then build with nmake.
+
+List of installation commands on Windows:
+
+```
+mkdir build
+cd build
+cmake -G "NMake Makefiles" ..
+nmake
+```
+
+Once built, the engine will be portably contained in the Release directory (or Debug if you change the build type). On Mac, the engine will be packaged as an app, but can still utilize command line arguments if executed from the terminal, and on linux, the app will be packaged as an AppImage.
 
 ## Getting Started
 
-Run the program from your build directory with `./lutherie -o <path-to-a-project-directory>` where the path is an arbitrary folder where you want project files to go. If the directory doesn't exist, it will be created.
+Run the program with `./lutherie -o <path-to-a-project-directory>` where the path is an arbitrary folder where you want project files to go. If the directory doesn't exist, it will be created.
 
-Go ahead and close the program, and navigate to the project directory. You can place lua scripts in the `scripts/` subdirectory.
+Go ahead and close the program, and navigate to the project directory. You can now place lua scripts in the `scripts/` subdirectory. Feel free to read about the enitity component system below, or if you are familiar enough and comfortable with ECS as a concept, take a look at the example lua script at the bottom of the readme to get started.
 
 ## ECS in C++
 
