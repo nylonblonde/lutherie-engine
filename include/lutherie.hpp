@@ -3,11 +3,6 @@
 
 #include <luajit-2.0/lua.hpp>
 
-#ifdef LUTHERIE_VULKAN
-#define GLFW_INCLUDE_VULKAN
-#endif
-#include <GLFW/glfw3.h>
-
 //#include <assimp/Importer.hpp>
 //#include <assimp/scene.h>
 
@@ -17,17 +12,14 @@
 
 #include <ECSlua.hpp>
 #include "fs.h"
+#include <stdlib.h>
+#include <gfx.hpp>
 
 #if defined(_WIN32) || defined(_WIN64)
     #include <filesystem>
 #endif
 
 #include<string>
-
-const int WIDTH = 800;
-const int HEIGHT = 600;
-
-//using namespace ECS;
 
 class Lutherie {
 public:
@@ -48,7 +40,8 @@ public:
 
         return true;
     }
-            
+        
+    
     Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir);
     ~Lutherie();
     
@@ -59,14 +52,14 @@ private:
     const char* resourcesDir;
     const char* libDir;
     
+    Gfx* gfx;
+    
     ECSLua* ecs;
     
-    GLFWwindow* window;
     bool frameBufferResized = false;
     
     void initWindow();
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
-    
+
     void mainLoop();
     
     Lutherie();

@@ -3,6 +3,9 @@
 //using namespace ECS;
 
 Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir) : projectDir(dir), scriptsDir(sDir), resourcesDir(rDir), libDir(lDir), ecs(new ECSLua(luaL_newstate(), dir)) {
+
+    setenv("VK_LAYER_PATH", std::string(std::string(dir)+std::string("etc/vulkan/explicit_layer.d")).c_str(), 1);
+    setenv("VK_ICD_FILENAMES", std::string(std::string(dir)+std::string("etc/vulkan/icd.d/MoltenVK_icd.json")).c_str(), 1);
     
 	char * libScripts = new char[strlen(libDir) + 12];
 	strcpy(libScripts, libDir);
@@ -32,7 +35,7 @@ Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const ch
 
 	delete[] libScripts;
 
-    initWindow();
+    gfx = new VulkGfx();
     mainLoop();
 }
 
@@ -41,34 +44,16 @@ Lutherie::Lutherie() {}
 Lutherie::~Lutherie(){
 
 	delete ecs;
-
-	glfwDestroyWindow(window);
-	glfwTerminate();
-}
-
-void Lutherie::initWindow(){
-    glfwInit();
     
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-
-	window = glfwCreateWindow(WIDTH, HEIGHT, "Lutherie", nullptr, nullptr);
-
-	glfwSetWindowUserPointer(window, this);
-    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-}
-
-void Lutherie::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-    auto app = reinterpret_cast<Lutherie*>(glfwGetWindowUserPointer(window));
+    delete gfx;
     
-    app->frameBufferResized = true;
+	
 }
 
 void Lutherie::mainLoop(){
     using namespace ECS;
 
-    while(!glfwWindowShouldClose(window)){
-        glfwPollEvents();
+    while(!gfx->windowShouldClose()){
         
         auto start = std::chrono::high_resolution_clock::now();
         World::updateActive(World::allWorlds);

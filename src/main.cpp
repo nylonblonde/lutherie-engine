@@ -1,5 +1,3 @@
-#define LUTHERIE_VULKAN
-
 #if defined(LUTHERIE_MAC)
 #include <Cocoa/Cocoa.h>
 #include <unistd.h>
@@ -394,17 +392,32 @@ int main(int carg, char* args[]) {
 
 
 #elif defined(LUTHERIE_MAC)
+            //TODO: Sanitize input so paths can contain spaces and such
+            
 			char* _outPath = new char[strlen(outPath) + strlen(projectName) + 24];
 			sprintf(_outPath, "%s/%s.app/Contents/MacOS/", outPath, projectName);
 
 			char* makeDir = new char[strlen(_outPath) * 2 + strlen(exeDir) + 1024];
 			sprintf(makeDir, "mkdir -p %slib/lua/scripts && cp -r %slib/lua/ %slib/lua/", _outPath, exeDir, _outPath);
 			system(makeDir);
-
             delete[] makeDir;
+            makeDir = new char[strlen(_outPath) + strlen(exeDir) + 40];
+            sprintf(makeDir, "cp -r %setc %setc", exeDir, _outPath);
+            printf("%s \n", makeDir);
+            system(makeDir);
+            delete[] makeDir;
+            makeDir = new char[strlen(_outPath) + strlen(exeDir) + 40];
+            sprintf(makeDir, "cp %slib/libvulkan*.dylib %slib/", exeDir, _outPath);
+            printf("%s \n", makeDir);
+            system(makeDir);
+            delete[] makeDir;
+            makeDir = new char[strlen(_outPath) + strlen(exeDir) + 40];
+            sprintf(makeDir, "cp %slib/libMoltenVK.dylib %slib/", exeDir, _outPath);
+            printf("%s \n", makeDir);
+            system(makeDir);
             
 			char* compileCommand = new char[strlen(_outPath) + strlen(projectName) + strlen(executable) + strlen(exeDir) + 1024];
-			sprintf(compileCommand, "g++ -std=c++17 -pagezero_size 10000 -image_base 100000000 -o %s%s %smodules/main.cpp -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -L%slib/static -llutherie -lECS -lECSlua -lglfw3 -L%slib -lluajit -I%s/include", _outPath, executable, exeDir, exeDir, exeDir, exeDir);
+			sprintf(compileCommand, "g++ -std=c++17 -pagezero_size 10000 -image_base 100000000 -o %s%s %smodules/main.cpp -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -L%slib/static -llutherie -lgfx -lECS -lECSlua -lglfw3 -L%slib %slib/libluajit-5.1.a -Wl,-rpath,%slib -L%slib -lvulkan -I%s/include", _outPath, executable, exeDir, exeDir, exeDir, exeDir, _outPath, _outPath, exeDir);
 			printf("%s \n", compileCommand);
 			result = system(compileCommand);
 			if (result < 0) {
