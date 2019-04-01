@@ -10,8 +10,8 @@ Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const ch
 		std::string layerPath = std::string(std::string(dir)+std::string("etc/explicit_layer.d"));
     #elif defined(LUTHERIE_MAC)
 
-		std::string layerPath = std::string(std::string(dir)+std::string("etc/explicit_layer.d"));
-		std::string icdPath =  std::string(std::string(dir)+std::string("etc/icd.d/MoltenVK_icd.json"));
+		std::string layerPath = std::string(std::string(dir)+std::string("etc/vulkan/explicit_layer.d"));
+		std::string icdPath =  std::string(std::string(dir)+std::string("etc/vulkan/icd.d/MoltenVK_icd.json"));
 		setenv("VK_ICD_FILENAMES", icdPath.c_str(), 1);
 
 	#endif

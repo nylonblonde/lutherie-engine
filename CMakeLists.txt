@@ -209,7 +209,16 @@ set(SOURCES gfx/src/gfx.cpp)
 add_library(gfx STATIC ${SOURCES})
 
 target_link_directories(gfx PUBLIC ${RUNTIME_OUTPUT}/lib)
-target_link_libraries(gfx PUBLIC glfw libvulkan.so)
+if(APPLE)
+    set(Vulkan_LIB libvulkan.dylib)
+elseif(UNIX)
+    set(Vulkan_LIB libvulkan.so)
+else()
+
+endif()
+
+target_link_libraries(gfx PUBLIC glfw ${Vulkan_LIB})
+
 target_include_directories(gfx PUBLIC gfx/include ${Vulkan_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/lib/glfw/include ${CMAKE_SOURCE_DIR}/lib/glfw/deps)
 
 set_target_properties(gfx PROPERTIES 
@@ -243,6 +252,7 @@ target_link_directories(lutherielib PUBLIC ${CMAKE_BINARY_DIR}/lib/static)
 target_include_directories(lutherielib PUBLIC ECSlua/include ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/luajit/include)
 
 target_link_libraries(lutherielib ${LINK_LIBS})
+target_link_options(gfx PUBLIC -Wl,-rpath,'$ORIGIN/lib' -Wl,-L${RUNTIME_OUTPUT}/lib,-lvulkan)
 
 add_custom_command(TARGET lutherielib PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/include ${RUNTIME_OUTPUT}/include
