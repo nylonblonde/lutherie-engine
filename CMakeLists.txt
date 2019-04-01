@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.13.3)
 
 project(lutherie)
 
-set(CMAKE_BUILD_TYPE Release CACHE STRING "")
+if(NOT CMAKE_BUILD_TYPE)
+set(CMAKE_BUILD_TYPE Release)
+endif()
 
 if(WIN32 OR WIN64)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
@@ -79,7 +81,7 @@ endif()
 if(WIN32 OR WIN64) #win32 or win64 platforms
     set(MAKE_COMMAND ${CMAKE_SOURCE_DIR}/lib/luajit/src/msvcbuild.bat static)
     set(LUAJIT_EXE luajit.exe)
-	set(OUTPUT_FILES  ${RUNTIME_OUTPUT}/bin/${LUAJIT_EXE})
+	set(OUTPUT_FILES  ${RUNTIME_OUTPUT}/bin/${LUAJIT_EXE} ${RUNTIME_OUTPUT}/)
 
 	set(OUTPUT_COMMAND 
 		setlocal && 
@@ -108,7 +110,7 @@ if(WIN32 OR WIN64) #win32 or win64 platforms
 	)
 
 else() #unix/apple platforms
-    set(MAKE_COMMAND make -C ${CMAKE_SOURCE_DIR}/lib/luajit)
+    set(MAKE_COMMAND make -C ${CMAKE_SOURCE_DIR}/lib/luajit --always-make)
     set(LUAJIT_EXE luajit)
 	set(OUTPUT_FILES ${CMAKE_BINARY_DIR}/luajit/bin/${LUAJIT_EXE})
     set(LUAJIT_PREFIX PREFIX=${RUNTIME_OUTPUT})
@@ -194,6 +196,9 @@ add_custom_command(TARGET staticLibs PRE_BUILD
 set(SOURCES gfx/src/gfx.cpp)
 
 add_library(gfx STATIC ${SOURCES})
+
+target_link_directories(gfx PUBLIC ${RUNTIME_OUTPUT}/lib)
+target_link_libraries(gfx PUBLIC glfw libvulkan.so)
 target_include_directories(gfx PUBLIC gfx/include ${Vulkan_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/lib/glfw/include)
 
 set_target_properties(gfx PROPERTIES 
@@ -220,13 +225,13 @@ set_target_properties(lutherielib PROPERTIES
     OUTPUT_NAME lutherie
 )
 
-set(LINK_LIBS ECSlua glfw gfx)
+set(LINK_LIBS ECSlua gfx)
 
 target_link_directories(lutherielib PUBLIC ${CMAKE_BINARY_DIR}/lib/static)
 
 target_include_directories(lutherielib PUBLIC ECSlua/include ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/luajit/include)
 
-target_link_libraries(lutherielib ${LINK_LIBS} ${Vulkan_LIBRARY})
+target_link_libraries(lutherielib ${LINK_LIBS})
 
 add_custom_command(TARGET lutherielib PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/include ${RUNTIME_OUTPUT}/include
@@ -251,13 +256,15 @@ if(WIN32 OR WIN64)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNODEFAULTLIB:library)
 endif()
 
+add_custom_command(TARGET gfx PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{VULKAN_SDK}/etc ${RUNTIME_OUTPUT}/etc
+    COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{VULKAN_SDK}/bin ${RUNTIME_OUTPUT}/bin
+    COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{VULKAN_SDK}/lib ${RUNTIME_OUTPUT}/lib
+    COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{VULKAN_SDK}/include/vulkan ${RUNTIME_OUTPUT}/include/vulkan
+)
+
 if(APPLE)
-    add_custom_command(TARGET lutherie POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{VULKAN_SDK}/etc ${RUNTIME_OUTPUT}/etc
-        COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{VULKAN_SDK}/bin ${RUNTIME_OUTPUT}/bin
-        COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{VULKAN_SDK}/lib ${RUNTIME_OUTPUT}/lib
-        COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{VULKAN_SDK}/include/vulkan ${RUNTIME_OUTPUT}/include/vulkan
-    )
+    
     add_definitions(-DLUTHERIE_MAC -x objective-c++)
     set_target_properties(lutherie PROPERTIES 
         MACOSX_BUNDLE TRUE 
@@ -265,6 +272,10 @@ if(APPLE)
     )
     target_link_options(lutherie PUBLIC -pagezero_size 10000 -image_base 100000000)
     target_link_libraries(lutherie ${COCOA_LIB} ${IOKIT_LIB} ${COREFOUNDATION_LIB} ${COREVIDEO_LIB})
+endif()
+
+if(UNIX)
+    # target_link_options(lutherie PUBLIC -Wl,-rpath,'$ORIGIN/lib',-L${RUNTIME_OUTPUT}/lib,-lvulkan)
 endif()
 
 target_link_directories(lutherie PUBLIC ${CMAKE_BINARY_DIR}/lib/static)
