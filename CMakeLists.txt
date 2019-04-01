@@ -110,9 +110,11 @@ if(WIN32 OR WIN64) #win32 or win64 platforms
 	)
 
 else() #unix/apple platforms
-    set(MAKE_COMMAND make -C ${CMAKE_SOURCE_DIR}/lib/luajit --always-make)
+    set(MAKE_COMMAND make -C ${CMAKE_SOURCE_DIR}/lib/luajit)
+    set(MAKE_OPTION --always-make)
     set(LUAJIT_EXE luajit)
-	set(OUTPUT_FILES ${CMAKE_BINARY_DIR}/luajit/bin/${LUAJIT_EXE})
+   	set(INPUT_FILES ${CMAKE_SOURCE_DIR}/lib/luajit/src/${LUAJIT_EXE} ${CMAKE_SOURCE_DIR}/lib/luajit/src/jit/bc.lua)
+	set(OUTPUT_FILES ${CMAKE_BINARY_DIR}/luajit/bin/${LUAJIT_EXE} ${CMAKE_BINARY_DIR}/luajit/share/bc.lua)
     set(LUAJIT_PREFIX PREFIX=${RUNTIME_OUTPUT})
 
 	if(APPLE)
@@ -121,24 +123,33 @@ else() #unix/apple platforms
 
 	set(OUTPUT_COMMAND 
 		${ENVIRONMENT_COMMAND}
-        ${MAKE_COMMAND} ${LUAJIT_PREFIX}
-        && ${MAKE_COMMAND} install ${LUAJIT_PREFIX}
+        ${MAKE_COMMAND} ${LUAJIT_PREFIX} ${MAKE_OPTION}
 	)
+
+    set(OUTPUT_COMMAND2
+        ${MAKE_COMMAND} install ${LUAJIT_PREFIX}
+    )
 
 endif() #platforms
 
-file(GLOB LUAJIT_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/lib/luajit/src/*.c)
+# file(GLOB LUAJIT_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/lib/luajit/src/*.c)
+
+add_custom_command(OUTPUT ${INPUT_FILES}
+    COMMAND ${OUTPUT_COMMAND}
+)
 
 add_custom_command(OUTPUT ${OUTPUT_FILES}
-    COMMAND ${OUTPUT_COMMAND}
-    DEPENDS ${LUAJIT_SRC}
+    COMMAND ${OUTPUT_COMMAND2}
+    DEPENDS ${INPUT_FILES}
 )
 
 add_custom_target(luaJIT ALL DEPENDS ${OUTPUT_FILES})
 
-add_custom_command(TARGET ECS PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/ECS/include ${RUNTIME_OUTPUT}/include
-)
+# add_custom_target(luaJITinstall ALL DEPENDS ${OUTPUT_FILES})
+
+#add_custom_command(TARGET ECS PRE_BUILD
+#    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/ECS/include ${RUNTIME_OUTPUT}/include
+#)
 
 ##################
 ##              ##
@@ -177,7 +188,7 @@ add_custom_command(TARGET ECSlua PRE_BUILD
 ##################
 
 option(GLFW_BUILD_DOCS off)
-option(GLFW_VULKAN_STATIC on)
+# option(GLFW_VULKAN_STATIC on)
 add_subdirectory(lib/glfw ${CMAKE_BINARY_DIR}/glfw EXCLUDE_FROM_ALL)
 
 add_custom_target(staticLibs)
@@ -199,7 +210,7 @@ add_library(gfx STATIC ${SOURCES})
 
 target_link_directories(gfx PUBLIC ${RUNTIME_OUTPUT}/lib)
 target_link_libraries(gfx PUBLIC glfw libvulkan.so)
-target_include_directories(gfx PUBLIC gfx/include ${Vulkan_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/lib/glfw/include)
+target_include_directories(gfx PUBLIC gfx/include ${Vulkan_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/lib/glfw/include ${CMAKE_SOURCE_DIR}/lib/glfw/deps)
 
 set_target_properties(gfx PROPERTIES 
     CXX_STANDARD 17
@@ -244,6 +255,7 @@ add_custom_command(TARGET lutherielib PRE_BUILD
 ##################
 
 add_executable(lutherie src/main.cpp)
+# add_dependencies(lutherie luaJITinstall)
 
 set_target_properties(lutherie PROPERTIES 
 	CXX_STANDARD 17

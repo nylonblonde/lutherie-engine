@@ -4,7 +4,7 @@
 
 Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const char* lDir) : projectDir(dir), scriptsDir(sDir), resourcesDir(rDir), libDir(lDir), ecs(new ECSLua(luaL_newstate(), dir)) {
 
-		setenv("LD_LIBRARY_PATH", std::string(std::string(dir) + std::string("lib")).c_str(), 0);
+		//setenv("LD_LIBRARY_PATH", std::string(std::string(dir) + std::string("lib")).c_str(), 0);
 	#if defined (__linux__)
 
 		std::string layerPath = std::string(std::string(dir)+std::string("etc/explicit_layer.d"));
