@@ -9,6 +9,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <algorithm>
 
 #ifdef NDEBUG
     const bool enableValidationLayers = false;
@@ -45,6 +46,11 @@ private:
     VkQueue graphicsQueue;
     VkSurfaceKHR surface;
     VkQueue presentQueue;
+    VkSwapchainKHR swapChain;
+    std::vector<VkImage> swapChainImages;
+    VkFormat swapChainImageFormat;
+    VkExtent2D swapChainExtent;
+    std::vector<VkImageView> swapChainImageViews;
     
     struct QueueFamilyIndices {
         std::optional<uint32_t> graphicsFamily;
@@ -93,6 +99,11 @@ private:
     //Presentation methods
     void createSurface();
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+    void createSwapChain();
+    void createImageViews();
     
     //QueueFamily methods
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);    
