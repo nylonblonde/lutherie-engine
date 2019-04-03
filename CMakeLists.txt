@@ -217,7 +217,7 @@ else()
 
 endif()
 
-target_link_libraries(gfx PUBLIC glfw ${Vulkan_LIB})
+target_link_libraries(gfx PUBLIC glfw ${Vulkan_LIB} glslang SPIRV shaderc_combined)
 
 target_include_directories(gfx PUBLIC gfx/include ${Vulkan_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/lib/glfw/include ${CMAKE_SOURCE_DIR}/lib/glfw/deps)
 
@@ -252,8 +252,9 @@ target_link_directories(lutherielib PUBLIC ${CMAKE_BINARY_DIR}/lib/static)
 target_include_directories(lutherielib PUBLIC ECSlua/include ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/luajit/include)
 
 target_link_libraries(lutherielib ${LINK_LIBS})
-target_link_options(gfx PUBLIC -Wl,-rpath,'$ORIGIN/lib' -Wl,-L${RUNTIME_OUTPUT}/lib,-lvulkan)
-
+if(UNIX)
+    target_link_options(gfx PUBLIC -Wl,-rpath,'$ORIGIN/lib' -Wl,-L${RUNTIME_OUTPUT}/lib,-lvulkan)
+endif()
 add_custom_command(TARGET lutherielib PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/include ${RUNTIME_OUTPUT}/include
 )

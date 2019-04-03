@@ -1,5 +1,9 @@
 #include "gfx.hpp"
 
+Gfx::Gfx(const char* resDir) : resourcesDir(resDir) {
+    
+}
+
 bool Gfx::windowShouldClose() {
     glfwPollEvents();
     return glfwWindowShouldClose(window);
@@ -32,15 +36,20 @@ void VulkGfx::initVulkan() {
     createLogicalDevice();
     createSwapChain();
     createImageViews();
+
+    compileGlsl(std::string(std::string(resourcesDir) + std::string("shaders/unlit.vert")).c_str());
 }
 
-VulkGfx::VulkGfx(){
+VulkGfx::VulkGfx(const char* resDir) : Gfx(resDir){
     Gfx::initWindow();
     initVulkan();
     
 }
 
 VulkGfx::~VulkGfx() {
+    
+    std::cout << "Cleaning up VulkGfx" << std::endl;
+    
     for(auto imageView : swapChainImageViews) {
         vkDestroyImageView(device, imageView, nullptr);
     }
@@ -57,6 +66,150 @@ VulkGfx::~VulkGfx() {
     
     glfwDestroyWindow(window);
 	glfwTerminate();
+}
+
+std::vector<uint32_t> VulkGfx::compileGlsl(const char* filePath) {
+    glslang::InitializeProcess();
+    std::ifstream file;
+    file.open(filePath, std::ios::ate);
+    if(!file.is_open()){
+        throw std::runtime_error(std::string("failed to open ")+std::string(filePath));
+    }
+    size_t fileSize = static_cast<size_t>(file.tellg());
+    std::vector<char> buffer(fileSize);
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+    
+    std::string glslString(buffer.data());
+    const char* cString = glslString.c_str();
+    glslang::TShader shader = glslang::TShader(EShLanguage::EShLangVertex); 
+    
+    shader.setStrings(&cString, 1);
+
+    TBuiltInResource resources = {};
+    resources.maxLights = 32;
+	resources.maxClipPlanes = 6;
+	resources.maxTextureUnits = 32;
+	resources.maxTextureCoords = 32;
+	resources.maxVertexAttribs = 64;
+	resources.maxVertexUniformComponents = 4096;
+	resources.maxVaryingFloats = 64;
+	resources.maxVertexTextureImageUnits = 32;
+	resources.maxCombinedTextureImageUnits = 80;
+	resources.maxTextureImageUnits = 32;
+	resources.maxFragmentUniformComponents = 4096;
+	resources.maxDrawBuffers = 32;
+	resources.maxVertexUniformVectors = 128;
+	resources.maxVaryingVectors = 8;
+	resources.maxFragmentUniformVectors = 16;
+	resources.maxVertexOutputVectors = 16;
+	resources.maxFragmentInputVectors = 15;
+	resources.minProgramTexelOffset = -8;
+	resources.maxProgramTexelOffset = 7;
+	resources.maxClipDistances = 8;
+	resources.maxComputeWorkGroupCountX = 65535;
+	resources.maxComputeWorkGroupCountY = 65535;
+	resources.maxComputeWorkGroupCountZ = 65535;
+	resources.maxComputeWorkGroupSizeX = 1024;
+	resources.maxComputeWorkGroupSizeY = 1024;
+	resources.maxComputeWorkGroupSizeZ = 64;
+	resources.maxComputeUniformComponents = 1024;
+	resources.maxComputeTextureImageUnits = 16;
+	resources.maxComputeImageUniforms = 8;
+	resources.maxComputeAtomicCounters = 8;
+	resources.maxComputeAtomicCounterBuffers = 1;
+	resources.maxVaryingComponents = 60;
+	resources.maxVertexOutputComponents = 64;
+	resources.maxGeometryInputComponents = 64;
+	resources.maxGeometryOutputComponents = 128;
+	resources.maxFragmentInputComponents = 128;
+	resources.maxImageUnits = 8;
+	resources.maxCombinedImageUnitsAndFragmentOutputs = 8;
+	resources.maxCombinedShaderOutputResources = 8;
+	resources.maxImageSamples = 0;
+	resources.maxVertexImageUniforms = 0;
+	resources.maxTessControlImageUniforms = 0;
+	resources.maxTessEvaluationImageUniforms = 0;
+	resources.maxGeometryImageUniforms = 0;
+	resources.maxFragmentImageUniforms = 8;
+	resources.maxCombinedImageUniforms = 8;
+	resources.maxGeometryTextureImageUnits = 16;
+	resources.maxGeometryOutputVertices = 256;
+	resources.maxGeometryTotalOutputComponents = 1024;
+	resources.maxGeometryUniformComponents = 1024;
+	resources.maxGeometryVaryingComponents = 64;
+	resources.maxTessControlInputComponents = 128;
+	resources.maxTessControlOutputComponents = 128;
+	resources.maxTessControlTextureImageUnits = 16;
+	resources.maxTessControlUniformComponents = 1024;
+	resources.maxTessControlTotalOutputComponents = 4096;
+	resources.maxTessEvaluationInputComponents = 128;
+	resources.maxTessEvaluationOutputComponents = 128;
+	resources.maxTessEvaluationTextureImageUnits = 16;
+	resources.maxTessEvaluationUniformComponents = 1024;
+	resources.maxTessPatchComponents = 120;
+	resources.maxPatchVertices = 32;
+	resources.maxTessGenLevel = 64;
+	resources.maxViewports = 16;
+	resources.maxVertexAtomicCounters = 0;
+	resources.maxTessControlAtomicCounters = 0;
+	resources.maxTessEvaluationAtomicCounters = 0;
+	resources.maxGeometryAtomicCounters = 0;
+	resources.maxFragmentAtomicCounters = 8;
+	resources.maxCombinedAtomicCounters = 8;
+	resources.maxAtomicCounterBindings = 1;
+	resources.maxVertexAtomicCounterBuffers = 0;
+	resources.maxTessControlAtomicCounterBuffers = 0;
+	resources.maxTessEvaluationAtomicCounterBuffers = 0;
+	resources.maxGeometryAtomicCounterBuffers = 0;
+	resources.maxFragmentAtomicCounterBuffers = 1;
+	resources.maxCombinedAtomicCounterBuffers = 1;
+	resources.maxAtomicCounterBufferSize = 16384;
+	resources.maxTransformFeedbackBuffers = 4;
+	resources.maxTransformFeedbackInterleavedComponents = 64;
+	resources.maxCullDistances = 8;
+	resources.maxCombinedClipAndCullDistances = 8;
+	resources.maxSamples = 4;
+	resources.limits.nonInductiveForLoops = 1;
+	resources.limits.whileLoops = 1;
+	resources.limits.doWhileLoops = 1;
+	resources.limits.generalUniformIndexing = 1;
+	resources.limits.generalAttributeMatrixVectorIndexing = 1;
+	resources.limits.generalVaryingIndexing = 1;
+	resources.limits.generalSamplerIndexing = 1;
+	resources.limits.generalVariableIndexing = 1;
+    resources.limits.generalConstantMatrixVectorIndexing = 1;
+
+    std::vector<uint32_t> spirv = {};
+            
+    shader.setEnvInput(glslang::EShSourceGlsl, (EShLanguage)shader.getStage(), glslang::EShClientVulkan, 100);    
+    shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_0);
+    shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
+    
+    EShMessages messages = (EShMessages)(EShMsgVulkanRules | EShMsgSpvRules);
+    
+    std::string processedString;
+    ShaderIncluder includer;
+    
+    if(!shader.preprocess(&resources, 100, ENoProfile, false, false, messages, &processedString, includer)) {
+        std::cout << "failed to preprocess "<< (EShLanguage)shader.getStage() << std::endl;
+        std::cout << shader.getInfoLog() << std::endl;
+    }
+    
+    const char* processedCStr = processedString.c_str();
+    
+    shader.setStrings(&processedCStr, 1);
+        
+    if(!shader.parse(&resources, 100, false, messages)){
+        std::cout << "failed to parse "<< (EShLanguage)shader.getStage() << std::endl;
+        std::cout << shader.getInfoLog() << std::endl;
+    } else {
+        glslang::GlslangToSpv(*shader.getIntermediate(), spirv);
+    }
+    
+    file.close();
+    glslang::FinalizeProcess();
+    return spirv;
 }
 
 void VulkGfx::createImageViews() {

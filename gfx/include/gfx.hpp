@@ -11,6 +11,11 @@
 #include <set>
 #include <algorithm>
 
+#include <fstream>
+#include <glslang/Public/ShaderLang.h>
+#include <SPIRV/GlslangToSpv.h>
+//#include <StandAlone/DirStackFileIncluder.h>
+
 #ifdef NDEBUG
     const bool enableValidationLayers = false;
 #else
@@ -32,6 +37,9 @@ protected:
     bool frameBufferResized = false;
     
 public:
+    Gfx(const char *);
+    virtual ~Gfx() {}
+    const char* resourcesDir;
     
     virtual void initWindow();
     virtual bool windowShouldClose();
@@ -110,9 +118,24 @@ private:
     
     
 public:
-    VulkGfx();
+    VulkGfx(const char* resDir);
     ~VulkGfx();
 
+    //Shader compiling
+    std::vector<uint32_t> compileGlsl(const char* file);
+
+    class ShaderIncluder : public glslang::TShader::Includer {
+    public:
+
+        // Signals that the parser will no longer use the contents of the
+        // specified IncludeResult.
+        virtual void releaseInclude(IncludeResult* result) override {
+            if(result != nullptr) {
+                
+            }
+        }
+    };
+    
 };
 
 #endif //luthvulk_hpp

@@ -10,3 +10,9 @@
 [submodule "lib/luajit"]
 	path = lib/luajit
 	url = http://luajit.org/git/luajit-2.0.git
+[submodule "glslang"]
+	path = glslang
+	url = https://github.com/KhronosGroup/glslang.git
+[submodule "lib/glslang"]
+	path = lib/glslang
+	url = https://github.com/KhronosGroup/glslang.git

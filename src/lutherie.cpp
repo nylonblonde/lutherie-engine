@@ -44,7 +44,7 @@ Lutherie::Lutherie(const char* dir, const char* sDir, const char* rDir, const ch
 
 	delete[] libScripts;
 
-    gfx = new VulkGfx();
+    gfx = new VulkGfx(resourcesDir);
     mainLoop();
 }
 
@@ -52,11 +52,8 @@ Lutherie::Lutherie() {}
 
 Lutherie::~Lutherie(){
 
-	delete ecs;
-    
-    delete gfx;
-    
-	
+	delete ecs; 
+	delete gfx;
 }
 
 void Lutherie::mainLoop(){
