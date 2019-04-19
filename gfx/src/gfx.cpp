@@ -37,7 +37,6 @@ void VulkGfx::initVulkan() {
     createSwapChain();
     createImageViews();
 
-    compileGlsl(std::string(std::string(resourcesDir) + std::string("shaders/unlit.vert")).c_str());
 }
 
 VulkGfx::VulkGfx(const char* resDir) : Gfx(resDir){
@@ -68,24 +67,74 @@ VulkGfx::~VulkGfx() {
 	glfwTerminate();
 }
 
-std::vector<uint32_t> VulkGfx::compileGlsl(const char* filePath) {
+VkShaderModule VulkGfx::createShaderModule(const std::vector<uint32_t> code) {
+    VkShaderModuleCreateInfo  createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    //code.size() gives us the number of items in the vector, we actually need to multiply by 4 to give enough room for the int byte size I THINK. See https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/VkShaderModuleCreateInfo.html "if pCode points to SPIR-V code, codeSize must be a multiple of 4"
+    createInfo.codeSize = code.size()*4;
+    createInfo.pCode = code.data();
+    
+    VkShaderModule shaderModule;
+    if(vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create shader module!");
+    }
+    
+    return shaderModule;
+}
+
+void VulkGfx::createGraphicsPipeline() {
+    VkShaderModule vertShaderModule = createShaderModule(compileGlsl("unlit.vert"));
+    VkShaderModule fragShaderModule = createShaderModule(compileGlsl("unlit.frag"));
+    
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
+    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.pName = "main";
+    //this can be set for configuring constants at pipeline creation instead of configuring shader at runtime. nullptr for now, but should be implemented.
+    vertShaderStageInfo.pSpecializationInfo = nullptr;
+    
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
+    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.pName = "main";
+    fragShaderStageInfo.pSpecializationInfo = nullptr;
+    
+    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+    
+    vkDestroyShaderModule(device, fragShaderModule, nullptr);
+    vkDestroyShaderModule(device, vertShaderModule, nullptr);
+}
+
+std::vector<uint32_t> VulkGfx::compileGlsl(const char* fileName) {
+    
+    auto compiledStages = std::unordered_map<EShLanguage, std::vector<uint32_t>>();
+    
     glslang::InitializeProcess();
+    
+    std::string filePath = std::string(resourcesDir) + std::string("shaders/") + std::string(fileName);
+
+    std::cout << filePath << std::endl;
+    
     std::ifstream file;
-    file.open(filePath, std::ios::ate);
+    file.open(filePath);
     if(!file.is_open()){
         throw std::runtime_error(std::string("failed to open ")+std::string(filePath));
     }
-    size_t fileSize = static_cast<size_t>(file.tellg());
-    std::vector<char> buffer(fileSize);
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
     
-    std::string glslString(buffer.data());
+    std::string glslString = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    file.close();
+    
     const char* cString = glslString.c_str();
     glslang::TShader shader = glslang::TShader(EShLanguage::EShLangVertex); 
+    glslang::TProgram program = glslang::TProgram();
     
     shader.setStrings(&cString, 1);
 
+    //TODO: Make a constant DefaultResource that can just be referenced here
+    
     TBuiltInResource resources = {};
     resources.maxLights = 32;
 	resources.maxClipPlanes = 6;
@@ -180,7 +229,7 @@ std::vector<uint32_t> VulkGfx::compileGlsl(const char* filePath) {
 	resources.limits.generalVariableIndexing = 1;
     resources.limits.generalConstantMatrixVectorIndexing = 1;
 
-    std::vector<uint32_t> spirv = {};
+    std::vector<uint32_t> spirv = std::vector<uint32_t>();
             
     shader.setEnvInput(glslang::EShSourceGlsl, (EShLanguage)shader.getStage(), glslang::EShClientVulkan, 100);    
     shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_0);
@@ -191,6 +240,8 @@ std::vector<uint32_t> VulkGfx::compileGlsl(const char* filePath) {
     std::string processedString;
     ShaderIncluder includer;
     
+    //ShaderIncluder is basically a blank implementation for potential future use at the moment.
+    
     if(!shader.preprocess(&resources, 100, ENoProfile, false, false, messages, &processedString, includer)) {
         std::cout << "failed to preprocess "<< (EShLanguage)shader.getStage() << std::endl;
         std::cout << shader.getInfoLog() << std::endl;
@@ -200,14 +251,29 @@ std::vector<uint32_t> VulkGfx::compileGlsl(const char* filePath) {
     
     shader.setStrings(&processedCStr, 1);
         
+//    std::cout << processedCStr << std::endl;
+    
     if(!shader.parse(&resources, 100, false, messages)){
         std::cout << "failed to parse "<< (EShLanguage)shader.getStage() << std::endl;
         std::cout << shader.getInfoLog() << std::endl;
     } else {
-        glslang::GlslangToSpv(*shader.getIntermediate(), spirv);
+        
+        glslang::TProgram program;
+        program.addShader(&shader);
+        
+        if(!program.link(messages)) {
+            std::cout << "GLSL linking failed" << std::endl;
+            std::cout << shader.getInfoLog() << std::endl;
+        } else {
+            glslang::SpvOptions spvOptions;
+            spv::SpvBuildLogger logger;
+
+            std::cout << (EShLanguage)shader.getStage() << std::endl;
+            glslang::GlslangToSpv(*program.getIntermediate((EShLanguage)shader.getStage()), spirv, &logger, &spvOptions);
+            
+        }
     }
-    
-    file.close();
+        
     glslang::FinalizeProcess();
     return spirv;
 }

@@ -26,7 +26,7 @@ namespace ECS {
     public:
         
         Component();
-        ~Component();
+        virtual ~Component();
         
         friend class World;
     };
@@ -92,6 +92,9 @@ namespace ECS {
         }
                 
     public:
+        
+        virtual ~World(){}
+        
         uint32_t id() const { return _id; }
         static std::vector<World*> allWorlds;
         
@@ -246,7 +249,7 @@ namespace ECS {
         std::unordered_set<size_t> getDependencies();
         
         System(World& w);
-
+        virtual ~System(){}
         virtual void OnUpdate();
         virtual void OnActive();
 

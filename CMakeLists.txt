@@ -220,7 +220,6 @@ endif()
 target_link_libraries(gfx PUBLIC glfw ${Vulkan_LIB} glslang SPIRV shaderc_combined)
 
 target_include_directories(gfx PUBLIC gfx/include ${Vulkan_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/lib/glfw/include ${CMAKE_SOURCE_DIR}/lib/glfw/deps)
-
 set_target_properties(gfx PROPERTIES 
     CXX_STANDARD 17
 )

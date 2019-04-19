@@ -14,6 +14,8 @@
 #include <fstream>
 #include <glslang/Public/ShaderLang.h>
 #include <SPIRV/GlslangToSpv.h>
+#include <SPIRV/disassemble.h>
+
 //#include <StandAlone/DirStackFileIncluder.h>
 
 #ifdef NDEBUG
@@ -112,6 +114,9 @@ private:
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     void createSwapChain();
     void createImageViews();
+    void createGraphicsPipeline();
+    
+    VkShaderModule createShaderModule(std::vector<uint32_t> code);
     
     //QueueFamily methods
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);    
