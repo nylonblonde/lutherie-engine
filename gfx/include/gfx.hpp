@@ -14,7 +14,6 @@
 #include <fstream>
 #include <glslang/Public/ShaderLang.h>
 #include <SPIRV/GlslangToSpv.h>
-#include <SPIRV/disassemble.h>
 
 //#include <StandAlone/DirStackFileIncluder.h>
 
@@ -61,6 +60,7 @@ private:
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
+    VkPipelineLayout pipelineLayout;
     
     struct QueueFamilyIndices {
         std::optional<uint32_t> graphicsFamily;
