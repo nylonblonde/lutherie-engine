@@ -35,13 +35,14 @@ protected:
     GLFWwindow* window;
     
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
-    bool frameBufferResized = false;
+    bool framebufferResized = false;
     
 public:
     Gfx(const char *);
     virtual ~Gfx() {}
     const char* resourcesDir;
-    
+    virtual void drawFrame();
+
     virtual void initWindow();
     virtual bool windowShouldClose();
 };
@@ -61,7 +62,13 @@ private:
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
     VkPipelineLayout pipelineLayout;
-    
+    VkRenderPass renderPass;
+    VkPipeline graphicsPipeline;
+
+    std::vector<VkFramebuffer> swapChainFramebuffers;
+    VkCommandPool commandPool;
+    std::vector<VkCommandBuffer> commandBuffers;
+
     struct QueueFamilyIndices {
         std::optional<uint32_t> graphicsFamily;
         std::optional<uint32_t> presentFamily;
@@ -114,10 +121,21 @@ private:
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     void createSwapChain();
     void createImageViews();
-    void createGraphicsPipeline();
     
+    //Graphics pipeline methods
+    void createRenderPass();
+    void createGraphicsPipeline();
+
+    void drawFrame();
+
     VkShaderModule createShaderModule(std::vector<uint32_t> code);
     
+    void createFramebuffers();
+    void createCommandPool();
+    void createCommandBuffers();
+
+    
+
     //QueueFamily methods
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);    
     

@@ -66,6 +66,8 @@ void Lutherie::mainLoop(){
         auto end = std::chrono::high_resolution_clock::now();
         double duration = std::chrono::duration_cast<std::chrono::duration<double>>(end-start).count();
 
+		gfx->drawFrame();
+
     }
 }
 
